@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,64 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// Posts Table - Stores all generated posts
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  image: text("image"),
+  postType: text("post_type").notNull(),
+  productName: text("product_name"),
+  publishStatus: text("publish_status").default("draft").notNull(),
+  publishedTo: jsonb("published_to").$type<string[]>(), 
+  scheduledDate: timestamp("scheduled_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  engagement: integer("engagement").default(0),
+  clicks: integer("clicks").default(0),
+  likes: integer("likes").default(0),
+  shares: integer("shares").default(0),
+  comments: integer("comments").default(0),
+  impressions: integer("impressions").default(0),
+});
+
+export const insertPostSchema = createInsertSchema(posts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  engagement: true,
+  clicks: true,
+  likes: true,
+  shares: true,
+  comments: true,
+  impressions: true,
+});
+
+export type InsertPost = z.infer<typeof insertPostSchema>;
+export type Post = typeof posts.$inferSelect;
+
+// Analytics Table - Store detailed analytics data by platform
+export const postAnalytics = pgTable("post_analytics", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  platform: text("platform").notNull(), // facebook, instagram
+  impressions: integer("impressions").default(0),
+  likes: integer("likes").default(0),
+  shares: integer("shares").default(0),
+  comments: integer("comments").default(0),
+  clicks: integer("clicks").default(0),
+  engagementRate: text("engagement_rate"),
+  recordedAt: timestamp("recorded_at").defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+});
+
+export const insertPostAnalyticsSchema = createInsertSchema(postAnalytics).omit({
+  id: true,
+  recordedAt: true,
+});
+
+export type InsertPostAnalytics = z.infer<typeof insertPostAnalyticsSchema>;
+export type PostAnalytics = typeof postAnalytics.$inferSelect;
+
 // Define the schema for post generation
 export const postGenerationSchema = z.object({
   productName: z.string().optional(),
@@ -32,3 +90,28 @@ export const facebookPostSchema = z.object({
 });
 
 export type FacebookPostRequest = z.infer<typeof facebookPostSchema>;
+
+// Schema for saving posts to history
+export const savePostSchema = z.object({
+  content: z.string(),
+  image: z.string().optional(),
+  postType: z.enum(["general", "promotion", "event", "seasonal"]),
+  productName: z.string().optional(),
+  publishStatus: z.enum(["draft", "published", "scheduled"]).default("draft"),
+  publishedTo: z.array(z.string()).optional(),
+  scheduledDate: z.string().optional(), // ISO string for date
+});
+
+export type SavePostRequest = z.infer<typeof savePostSchema>;
+
+// Schema for fetching post history
+export const postsQuerySchema = z.object({
+  limit: z.number().optional().default(20),
+  offset: z.number().optional().default(0),
+  postType: z.enum(["general", "promotion", "event", "seasonal"]).optional(),
+  publishStatus: z.enum(["draft", "published", "scheduled"]).optional(),
+  sortBy: z.enum(["createdAt", "updatedAt", "scheduledDate"]).optional().default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+});
+
+export type PostsQueryRequest = z.infer<typeof postsQuerySchema>;
