@@ -449,6 +449,111 @@ export default function PostGenerator({
             </div>
           </div>
         )}
+        {/* Post Edit Dialog */}
+        {isEditing && generatedPost && (
+          <Dialog open={isEditing} onOpenChange={() => setIsEditing(false)}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Edit Post</DialogTitle>
+              </DialogHeader>
+              
+              <div className="my-4">
+                <Textarea
+                  className="min-h-[200px] p-3 w-full"
+                  placeholder="Edit your post text..."
+                  value={generatedPost}
+                  onChange={(e) => setGeneratedPost(e.target.value)}
+                />
+              </div>
+              
+              <DialogFooter>
+                <div className="flex gap-2 justify-end mt-4">
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => {
+                    setIsEditing(false);
+                    toast({
+                      title: "Post Updated",
+                      description: "Your post has been successfully edited.",
+                    });
+                  }} className="bg-black text-yellow-400 hover:bg-gray-800">
+                    Save Changes
+                  </Button>
+                </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+        
+        {/* Post Scheduling Dialog */}
+        {isScheduling && (
+          <Dialog open={isScheduling} onOpenChange={() => setIsScheduling(false)}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Schedule Post</DialogTitle>
+              </DialogHeader>
+              
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Date</label>
+                  <Input 
+                    type="date" 
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      const date = new Date(e.target.value);
+                      setScheduledDate(date);
+                    }}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Time</label>
+                  <Input 
+                    type="time"
+                    onChange={(e) => {
+                      if (scheduledDate) {
+                        const [hours, minutes] = e.target.value.split(':').map(Number);
+                        const newDate = new Date(scheduledDate);
+                        newDate.setHours(hours, minutes);
+                        setScheduledDate(newDate);
+                      } else {
+                        // If no date is selected, use today
+                        const today = new Date();
+                        const [hours, minutes] = e.target.value.split(':').map(Number);
+                        today.setHours(hours, minutes);
+                        setScheduledDate(today);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsScheduling(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (scheduledDate) {
+                      handleSchedulePost(scheduledDate);
+                    } else {
+                      toast({
+                        title: "Error",
+                        description: "Please select a date and time for scheduling",
+                        variant: "destructive",
+                      });
+                    }
+                  }} 
+                  className="bg-black text-yellow-400 hover:bg-gray-800"
+                  disabled={!scheduledDate}
+                >
+                  Schedule Post
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardContent>
     </Card>
   );
