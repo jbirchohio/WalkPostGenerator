@@ -353,9 +353,12 @@ export default function Analytics() {
                     <tr className="border-b">
                       <th className="text-left py-3 px-4">Content</th>
                       <th className="text-left py-3 px-4">Type</th>
+                      <th className="text-left py-3 px-4">Platforms</th>
                       <th className="text-left py-3 px-4">Status</th>
                       <th className="text-right py-3 px-4">Impressions</th>
-                      <th className="text-right py-3 px-4">Engagement</th>
+                      <th className="text-right py-3 px-4">Likes</th>
+                      <th className="text-right py-3 px-4">Comments</th>
+                      <th className="text-right py-3 px-4">Shares</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -365,12 +368,44 @@ export default function Analytics() {
                           {post.content}
                         </td>
                         <td className="py-3 px-4 capitalize">{post.postType}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex space-x-2">
+                            {post.publishedTo ? (
+                              post.publishedTo.map((platform: string, idx: number) => (
+                                <span key={idx} className="inline-flex items-center">
+                                  {platform === 'facebook' ? (
+                                    <Facebook className="h-4 w-4 text-blue-600 mr-1" />
+                                  ) : (
+                                    <Instagram className="h-4 w-4 text-pink-600 mr-1" />
+                                  )}
+                                </span>
+                              ))
+                            ) : post.publishStatus === 'published' ? (
+                              <>
+                                <span className="inline-flex items-center">
+                                  <Facebook className="h-4 w-4 text-blue-600 mr-1" />
+                                </span>
+                                <span className="inline-flex items-center">
+                                  <Instagram className="h-4 w-4 text-pink-600 mr-1" />
+                                </span>
+                              </>
+                            ) : (
+                              "Not published"
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 px-4 capitalize">{post.publishStatus}</td>
                         <td className="py-3 px-4 text-right">
                           {formatNumber(post.impressions)}
                         </td>
                         <td className="py-3 px-4 text-right">
-                          {formatNumber((post.likes || 0) + (post.shares || 0) + (post.comments || 0))}
+                          {formatNumber(post.likes || 0)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {formatNumber(post.comments || 0)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {formatNumber(post.shares || 0)}
                         </td>
                       </tr>
                     ))}
