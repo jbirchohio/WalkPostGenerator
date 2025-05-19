@@ -3,10 +3,10 @@ import { PostGenerationRequest } from "@shared/schema";
 
 // Use the provided API credentials
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "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"
+  apiKey: process.env.OPENAI_API_KEY
 });
 
-// The OpenAI Assistant ID
+// The OpenAI Assistant ID (if needed for future use)
 const ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID || "asst_Tjl2yMLdhaOav1RMT6gAC8so";
 
 /**
@@ -14,47 +14,58 @@ const ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID || "asst_Tjl2yMLdhaOav1RMT6
  */
 export async function generatePostWithOpenAI(data: PostGenerationRequest): Promise<string> {
   try {
-    let content = [];
-    
-    // Add text instruction
+    // Build the prompt text
     const textPrompt = buildPrompt(data);
-    content.push({
-      type: "text",
-      text: textPrompt
-    });
     
-    // Add image if provided
-    if (data.image) {
-      const base64Image = data.image.split(',')[1]; // Remove data URL prefix
-      content.push({
-        type: "image_url",
-        image_url: {
-          url: `data:image/jpeg;base64,${base64Image}`
-        }
+    // Basic system and user messages
+    const systemContent = "You are a social media manager for 'A Walk in the Park Cafe', a cozy cafe located at 1491 Aster Ave, Akron, OH 44301, next to a beautiful park. Your task is to create engaging, authentic content for Instagram and Facebook that highlights the cafe's products, ambiance, and connection to nature. Use emojis appropriately, include relevant hashtags, and make the content feel warm and inviting. Never include operating hours in your posts as they vary. Keep the location reference simple - just mention 'A Walk in the Park Cafe' or occasionally the full address (1491 Aster Ave, Akron, OH 44301) but don't invent other location details.";
+    
+    let result;
+    
+    // For text-only requests
+    if (!data.image) {
+      const textResponse = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+        messages: [
+          { role: "system", content: systemContent },
+          { role: "user", content: textPrompt }
+        ],
+        max_tokens: 500
       });
+      
+      result = textResponse.choices[0].message.content;
+    } else {
+      // For requests with images
+      const base64Image = data.image.split(',')[1]; // Remove data URL prefix
+      const imagePrompt = `${textPrompt}\n\nI've attached an image to use with this post. Include relevant aspects from this image in your social media post.`;
+      
+      // Create multimodal request
+      const imageResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemContent },
+          { 
+            role: "user", 
+            content: [
+              { type: "text", text: imagePrompt },
+              { 
+                type: "image_url", 
+                image_url: { url: `data:image/jpeg;base64,${base64Image}` } 
+              }
+            ]
+          }
+        ],
+        max_tokens: 500
+      });
+      
+      result = imageResponse.choices[0].message.content;
     }
     
-    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are a social media manager for 'A Walk in the Park Cafe', a cozy cafe located next to a beautiful park. Your task is to create engaging, authentic content for Instagram and Facebook that highlights the cafe's products, ambiance, and connection to nature. Use emojis appropriately, include relevant hashtags, and make the content feel warm and inviting."
-        },
-        {
-          role: "user",
-          content: content
-        }
-      ],
-      max_tokens: 500
-    });
+    return result || "Sorry, I couldn't generate a post at this time.";
     
-    return response.choices[0].message.content || "Sorry, I couldn't generate a post at this time.";
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error calling OpenAI:", error);
-    throw new Error(`Failed to generate post: ${error.message}`);
+    throw new Error(`Failed to generate post: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -62,7 +73,7 @@ export async function generatePostWithOpenAI(data: PostGenerationRequest): Promi
  * Build the prompt for OpenAI based on the request data
  */
 function buildPrompt(data: PostGenerationRequest): string {
-  let prompt = "Create a social media post for 'A Walk in the Park Cafe'";
+  let prompt = "Create a social media post for 'A Walk in the Park Cafe' (located at 1491 Aster Ave, Akron, OH 44301)";
   
   // Add product info if provided
   if (data.productName) {
@@ -90,7 +101,7 @@ function buildPrompt(data: PostGenerationRequest): string {
   }
   
   // Final instructions
-  prompt += " Include relevant emojis and hashtags. Format it like a professional social media post that's ready to be published on Facebook or Instagram.";
+  prompt += " Include relevant emojis and hashtags. Format it like a professional social media post that's ready to be published on Facebook or Instagram. IMPORTANT: Do NOT include any operating hours in the post, and only mention our location as 'A Walk in the Park Cafe' or the full address (1491 Aster Ave, Akron, OH 44301) if needed.";
   
   return prompt;
 }
