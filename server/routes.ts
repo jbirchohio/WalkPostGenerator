@@ -6,8 +6,17 @@ import { generatePostWithOpenAI } from "./api/openai";
 import { postToFacebook } from "./api/facebook";
 import { postToInstagram } from "./api/instagram";
 import { registerImageRoutes } from "./routes-images";
-
 import { saveBase64ImageAndGetUrl } from "./api/upload";
+import { 
+  savePost, 
+  updatePost, 
+  getPosts, 
+  getPost, 
+  deletePost, 
+  savePostAnalytics, 
+  getPostAnalytics, 
+  getAnalyticsSummary 
+} from "./api/posts";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
@@ -175,6 +184,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register image upload routes
   registerImageRoutes(app);
+  
+  // Save post to history
+  app.post("/api/posts", async (req: Request, res: Response) => {
+    try {
+      const result = await savePost(req.body);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error saving post:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error saving post"
+      });
+    }
+  });
+  
+  // Get post history
+  app.get("/api/posts", async (req: Request, res: Response) => {
+    try {
+      const { limit, offset, postType, publishStatus, sortBy, sortOrder } = req.query;
+      
+      const result = await getPosts(
+        Number(limit) || 20,
+        Number(offset) || 0,
+        postType as string | undefined,
+        publishStatus as string | undefined,
+        sortBy as string || 'createdAt',
+        (sortOrder as 'asc' | 'desc') || 'desc'
+      );
+      
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error getting posts:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error getting posts"
+      });
+    }
+  });
+  
+  // Get a single post
+  app.get("/api/posts/:id", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid post ID"
+        });
+      }
+      
+      const result = await getPost(id);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error getting post:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error getting post"
+      });
+    }
+  });
+  
+  // Update a post
+  app.put("/api/posts/:id", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid post ID"
+        });
+      }
+      
+      const result = await updatePost(id, req.body);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error updating post:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error updating post"
+      });
+    }
+  });
+  
+  // Delete a post
+  app.delete("/api/posts/:id", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid post ID"
+        });
+      }
+      
+      const result = await deletePost(id);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error deleting post:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error deleting post"
+      });
+    }
+  });
+  
+  // Save post analytics
+  app.post("/api/posts/:id/analytics", async (req: Request, res: Response) => {
+    try {
+      const postId = Number(req.params.id);
+      
+      if (isNaN(postId)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid post ID"
+        });
+      }
+      
+      const analyticsData = {
+        ...req.body,
+        postId
+      };
+      
+      const result = await savePostAnalytics(analyticsData);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error saving post analytics:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error saving post analytics"
+      });
+    }
+  });
+  
+  // Get analytics for a post
+  app.get("/api/posts/:id/analytics", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid post ID"
+        });
+      }
+      
+      const result = await getPostAnalytics(id);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error getting post analytics:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error getting post analytics"
+      });
+    }
+  });
+  
+  // Get analytics summary
+  app.get("/api/analytics/summary", async (req: Request, res: Response) => {
+    try {
+      const result = await getAnalyticsSummary();
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error getting analytics summary:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error getting analytics summary"
+      });
+    }
+  });
   
   const httpServer = createServer(app);
 
