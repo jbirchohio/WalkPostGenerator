@@ -44,6 +44,20 @@ export async function postToFacebook(postData: FacebookPostRequest): Promise<{ s
 
     if (data.error) {
       console.error('Facebook API error:', data.error);
+      
+      // Provide more specific error messages for common issues
+      if (data.error.code === 200 && data.error.message.includes('permission')) {
+        return {
+          success: false,
+          error: "Facebook permission error: Your access token needs the 'pages_read_engagement' and 'pages_manage_posts' permissions. Please generate a new token with these permissions.",
+        };
+      } else if (data.error.code === 190) {
+        return {
+          success: false,
+          error: "Your Facebook access token has expired. Please generate a new Page Access Token.",
+        };
+      }
+      
       return {
         success: false,
         error: data.error.message || 'Unknown Facebook API error',
@@ -194,13 +208,19 @@ async function uploadImageToFacebook(
         if (response.id) {
           return resolve({ id: response.id });
         } else if (response.error) {
+          // Provide more specific error messages for common issues
+          if (response.error.code === 200 && response.error.message.includes('permission')) {
+            return resolve({ 
+              error: "Facebook permission error: Your access token needs the 'pages_read_engagement' and 'pages_manage_posts' permissions." 
+            });
+          }
           return resolve({ error: response.error.message || 'Unknown error' });
         }
         
         return resolve({ error: 'No ID returned from Facebook' });
-      } catch (parseError) {
+      } catch (parseError: any) { // Fix type error
         console.error('Failed to parse Facebook response:', parseError);
-        return resolve({ error: `Failed to parse response: ${parseError.message}` });
+        return resolve({ error: `Failed to parse response: ${parseError.message || 'Unknown parsing error'}` });
       }
     });
   });
