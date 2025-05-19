@@ -60,10 +60,19 @@ export async function saveBase64ImageAndGetUrl(base64Image: string, req: any): P
     }
     
     // Generate the public URL
-    // For Facebook/Instagram, this needs to be a publicly accessible URL
-    // In development, we'll construct a URL that should work on Replit
-    const host = req.headers.host || 'localhost:5000';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
+    // For Facebook/Instagram, this needs to be a publicly accessible HTTPS URL
+    // When deployed on Replit, use the Replit domain
+    let host = req.headers.host || 'localhost:5000';
+    let protocol = 'https'; // Always use HTTPS
+    
+    // If we're on Replit, make sure we use the Replit domain
+    const replitDomain = process.env.REPLIT_DOMAINS ? 
+      process.env.REPLIT_DOMAINS.split(',')[0] : null;
+      
+    if (replitDomain) {
+      host = replitDomain;
+    }
+    
     const publicUrl = `${protocol}://${host}/uploads/${fileName}`;
     
     console.log('Image saved and accessible at:', publicUrl);

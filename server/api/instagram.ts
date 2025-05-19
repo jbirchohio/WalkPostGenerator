@@ -33,11 +33,9 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     // For direct Instagram posting, we need to ensure we have a public HTTPS image URL
     console.log("Instagram requires a publicly accessible HTTPS URL for image posting");
     
-    // For Instagram, we'll use the known working Unsplash image for now
-    // Instagram has strict requirements that our local image URLs don't meet
-    const imageUrl = "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
-    console.log("Using Instagram-compatible image URL:", imageUrl);
-    console.log("Original image URL that will be saved to history:", postData.image);
+    // Use the provided image URL - it should now be a proper HTTPS URL
+    const imageUrl = postData.image;
+    console.log("Using image URL for Instagram posting:", imageUrl);
     
     // Step 1: Create a container for the media
     const containerId = await createMediaContainer(imageUrl, postData.message);
