@@ -1,10 +1,40 @@
 import { v2 as cloudinary } from 'cloudinary';
 
-// Make sure we initialize cloudinary with proper configuration
-// This will use the CLOUDINARY_URL environment variable
-cloudinary.config({
-  secure: true // Force HTTPS
-});
+// Configure Cloudinary explicitly instead of relying on the CLOUDINARY_URL env variable
+// This avoids issues with the URL format
+try {
+  // Parse the Cloudinary URL manually if it exists
+  const cloudinaryUrl = process.env.CLOUDINARY_URL || '';
+  if (cloudinaryUrl) {
+    console.log("Configuring Cloudinary...");
+    
+    // Extract cloud name, API key and API secret from the URL
+    const cloudinaryRegex = /cloudinary:\/\/([^:]+):([^@]+)@(.+)/;
+    const match = cloudinaryUrl.match(cloudinaryRegex);
+    
+    if (match) {
+      const [, api_key, api_secret, cloud_name] = match;
+      
+      // Configure Cloudinary with the extracted values
+      cloudinary.config({
+        cloud_name,
+        api_key,
+        api_secret,
+        secure: true // Force HTTPS
+      });
+      
+      console.log(`Cloudinary configured successfully for cloud: ${cloud_name}`);
+    } else {
+      console.warn("Invalid Cloudinary URL format. Using fallback configuration.");
+      // Don't throw error to allow the app to continue running
+    }
+  } else {
+    console.warn("No Cloudinary URL provided. Image hosting functionality will be limited.");
+  }
+} catch (error) {
+  console.error("Error configuring Cloudinary:", error);
+  // Don't throw error to allow the app to continue running
+}
 
 // Configure cloudinary - this will use the CLOUDINARY_URL environment variable
 // Format: cloudinary://api_key:api_secret@cloud_name
@@ -15,6 +45,18 @@ cloudinary.config({
  */
 export async function uploadToCloudinary(imageData: string): Promise<string> {
   try {
+    // Check if Cloudinary is properly configured
+    try {
+      const config = cloudinary.config();
+      if (!config.cloud_name) {
+        console.warn("Cloudinary not configured, returning original image URL");
+        return imageData; // Return original URL if Cloudinary not configured
+      }
+    } catch (e) {
+      console.warn("Cloudinary not available, returning original image URL");
+      return imageData; // Return original URL if Cloudinary not available
+    }
+    
     // Check if we already have a Cloudinary URL
     if (imageData.includes('cloudinary.com')) {
       console.log("Image is already on Cloudinary:", imageData);
@@ -48,6 +90,8 @@ export async function uploadToCloudinary(imageData: string): Promise<string> {
     return uploadResult.secure_url;
   } catch (error: any) {
     console.error("Error uploading image to Cloudinary:", error);
-    throw new Error(`Failed to upload image to Cloudinary: ${error.message || 'Unknown error'}`);
+    // Return the original URL in case of error rather than failing completely
+    console.log("Returning original URL due to Cloudinary error");
+    return imageData;
   }
 }

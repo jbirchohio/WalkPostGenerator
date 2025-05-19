@@ -34,13 +34,13 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     // For direct Instagram posting, we need to ensure we have a public HTTPS URL
     console.log("Instagram requires a publicly accessible HTTPS URL for image posting");
     
-    // For now, use the image URL directly without Cloudinary
-    // We'll implement Cloudinary later when the configuration is correct
-    const imageUrl = postData.image;
-    console.log("Using image URL for Instagram posting:", imageUrl);
+    // Upload the image to Cloudinary to get an Instagram-compatible URL
+    console.log("Uploading image to Cloudinary for Instagram compatibility");
+    const cloudinaryUrl = await uploadToCloudinary(postData.image);
+    console.log("Using image URL for Instagram posting:", cloudinaryUrl);
     
     // Step 1: Create a container for the media
-    const containerId = await createMediaContainer(imageUrl, postData.message);
+    const containerId = await createMediaContainer(cloudinaryUrl, postData.message);
     
     if (!containerId) {
       throw new Error('Failed to create Instagram media container');
