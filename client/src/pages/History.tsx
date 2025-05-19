@@ -34,6 +34,7 @@ interface Post {
   likes: number;
   shares: number;
   comments: number;
+  clicks: number;
 }
 
 export default function History() {

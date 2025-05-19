@@ -16,23 +16,17 @@ function MainNavigation() {
       <div className="container mx-auto flex justify-between items-center">
         <div className="font-bold text-xl">A Walk in the Park Cafe</div>
         <div className="flex space-x-6">
-          <Link href="/">
-            <a className="flex items-center hover:underline">
-              <HomeIcon className="w-4 h-4 mr-1" />
-              Home
-            </a>
+          <Link href="/" className="flex items-center hover:underline">
+            <HomeIcon className="w-4 h-4 mr-1" />
+            Home
           </Link>
-          <Link href="/history">
-            <a className="flex items-center hover:underline">
-              <HistoryIcon className="w-4 h-4 mr-1" />
-              Post History
-            </a>
+          <Link href="/history" className="flex items-center hover:underline">
+            <HistoryIcon className="w-4 h-4 mr-1" />
+            Post History
           </Link>
-          <Link href="/analytics">
-            <a className="flex items-center hover:underline">
-              <BarChart2 className="w-4 h-4 mr-1" />
-              Analytics
-            </a>
+          <Link href="/analytics" className="flex items-center hover:underline">
+            <BarChart2 className="w-4 h-4 mr-1" />
+            Analytics
           </Link>
         </div>
       </div>

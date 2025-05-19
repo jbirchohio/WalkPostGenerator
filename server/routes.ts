@@ -169,6 +169,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Post to Instagram
       const igResponse = await postToInstagram(postData);
       
+      // If post was successful, save to history
+      if (igResponse.success) {
+        try {
+          await savePost({
+            content: postData.message,
+            image: postData.image,
+            postType: req.body.postType || "general",
+            productName: req.body.productName || null,
+            publishStatus: "published",
+            publishedTo: ["instagram"]
+          });
+          console.log("Post saved to history after Instagram posting");
+        } catch (error) {
+          console.warn("Failed to save post to history after Instagram posting:", error);
+          // Continue anyway since the post was successful
+        }
+      }
+      
       // Return the result
       return res.json(igResponse);
       

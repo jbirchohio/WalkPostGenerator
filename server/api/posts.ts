@@ -308,15 +308,11 @@ export async function getAnalyticsSummary(): Promise<{ success: boolean; summary
       .orderBy(desc(posts.createdAt))
       .limit(5);
     
-    // Get posts by platform
-    const postsByPlatform = await db
-      .select({
-        platform: sql<string>`unnest(${posts.publishedTo})`,
-        count: sql<number>`count(*)`
-      })
-      .from(posts)
-      .groupBy(sql`unnest(${posts.publishedTo})`)
-      .orderBy(desc(sql<number>`count(*)`));
+    // Get posts by platform - simplified approach for publishedTo
+    const postsByPlatform = [
+      { platform: 'facebook', count: await db.select({ count: sql<number>`count(*)` }).from(posts).where(sql`${posts.publishedTo} ? 'facebook'`).then(res => Number(res[0].count)) },
+      { platform: 'instagram', count: await db.select({ count: sql<number>`count(*)` }).from(posts).where(sql`${posts.publishedTo} ? 'instagram'`).then(res => Number(res[0].count)) },
+    ];
     
     return {
       success: true,
