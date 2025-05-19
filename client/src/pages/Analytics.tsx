@@ -6,10 +6,13 @@ import {
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Facebook, Instagram, Heart, MessageSquare, Share2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Facebook, Instagram, Heart, MessageSquare, Share2, RefreshCw, BarChart3, LineChart as LineChartIcon } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -49,13 +52,25 @@ interface AnalyticsSummary {
 export default function Analytics() {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshingAll, setRefreshingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<string>("engagement");
+  const [selectedPost, setSelectedPost] = useState<number | null>(null);
+  const [postHistoryData, setPostHistoryData] = useState<any>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const { toast } = useToast();
 
   // Fetch analytics summary on component mount
   useEffect(() => {
     fetchAnalyticsSummary();
   }, []);
+
+  // Fetch history data for the selected post
+  useEffect(() => {
+    if (selectedPost) {
+      fetchPostHistory(selectedPost);
+    }
+  }, [selectedPost]);
 
   // Function to fetch analytics summary from the API
   const fetchAnalyticsSummary = async () => {
@@ -68,6 +83,11 @@ export default function Analytics() {
       
       if (data.success) {
         setSummary(data.summary);
+        
+        // If we have recent posts and none is selected, select the first one for history graph
+        if (data.summary?.recentPosts?.length > 0 && !selectedPost) {
+          setSelectedPost(data.summary.recentPosts[0].id);
+        }
       } else {
         setError(data.error || 'Failed to fetch analytics summary');
       }
@@ -75,6 +95,74 @@ export default function Analytics() {
       setError(error.message || 'An error occurred while fetching analytics');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Function to refresh all posts analytics
+  const refreshAllAnalytics = async () => {
+    setRefreshingAll(true);
+    
+    try {
+      const response = await apiRequest('POST', '/api/analytics/refresh-all');
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Analytics Refreshed",
+          description: `Successfully refreshed analytics for ${data.refreshed} posts.`,
+        });
+        
+        // Reload the summary data
+        fetchAnalyticsSummary();
+        
+        // If we have a selected post, refresh its history too
+        if (selectedPost) {
+          fetchPostHistory(selectedPost);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to refresh analytics",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while refreshing analytics",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshingAll(false);
+    }
+  };
+  
+  // Function to fetch history data for a specific post
+  const fetchPostHistory = async (postId: number) => {
+    setLoadingHistory(true);
+    
+    try {
+      const response = await apiRequest('GET', `/api/posts/${postId}/analytics`);
+      const data = await response.json();
+      
+      if (data.success && data.history) {
+        setPostHistoryData(data.history);
+      } else {
+        setPostHistoryData(null);
+        toast({
+          title: "Notice",
+          description: "No historical data available for this post yet. Try refreshing analytics."
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch post history",
+        variant: "destructive"
+      });
+      setPostHistoryData(null);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -176,7 +264,17 @@ export default function Analytics() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-cafe-brown">Analytics Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-cafe-brown">Analytics Dashboard</h1>
+        <Button 
+          onClick={refreshAllAnalytics} 
+          disabled={refreshingAll || loading}
+          className="bg-emerald-600 hover:bg-emerald-700"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${refreshingAll ? 'animate-spin' : ''}`} />
+          {refreshingAll ? 'Refreshing...' : 'Refresh All Analytics'}
+        </Button>
+      </div>
       
       {loading ? (
         <div className="flex justify-center p-8">
@@ -246,6 +344,7 @@ export default function Analytics() {
               <TabsTrigger value="engagement">Engagement</TabsTrigger>
               <TabsTrigger value="platforms">Platforms</TabsTrigger>
               <TabsTrigger value="status">Post Status</TabsTrigger>
+              <TabsTrigger value="history">Metrics Over Time</TabsTrigger>
             </TabsList>
             
             <TabsContent value="engagement">
@@ -271,6 +370,139 @@ export default function Analytics() {
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <Card>
+                <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                  <div>
+                    <CardTitle>Metrics Over Time</CardTitle>
+                    <CardDescription>Track performance of posts across platforms</CardDescription>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <Select
+                      value={selectedPost?.toString() || ""}
+                      onValueChange={(value) => setSelectedPost(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select Post" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {analyticsData.recentPosts.map((post) => (
+                          <SelectItem key={post.id} value={post.id.toString()}>
+                            {post.productName || post.postType} ({post.id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={selectedMetric}
+                      onValueChange={setSelectedMetric}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select Metric" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="engagement">Engagement</SelectItem>
+                        <SelectItem value="impressions">Impressions</SelectItem>
+                        <SelectItem value="likes">Likes</SelectItem>
+                        <SelectItem value="comments">Comments</SelectItem>
+                        <SelectItem value="shares">Shares</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  {loadingHistory ? (
+                    <div className="flex justify-center items-center h-80">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+                        <p className="mt-4">Loading history data...</p>
+                      </div>
+                    </div>
+                  ) : !postHistoryData ? (
+                    <div className="flex justify-center items-center h-80">
+                      <div className="text-center">
+                        <p className="text-gray-500">No historical data available for this post.</p>
+                        <p className="text-gray-500 mt-2">Try refreshing analytics to collect data points.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart 
+                          data={postHistoryData.dates.map((date: string, index: number) => ({
+                            date,
+                            facebook: postHistoryData.facebook[selectedMetric][index] || 0,
+                            instagram: postHistoryData.instagram[selectedMetric][index] || 0
+                          }))}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="date" 
+                            type="category"
+                            tickFormatter={(date) => {
+                              return new Date(date).toLocaleDateString();
+                            }}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value) => formatNumber(value as number)}
+                            labelFormatter={(label) => {
+                              return new Date(label as string).toLocaleDateString();
+                            }}
+                          />
+                          <Legend />
+                          
+                          <Line
+                            name="Facebook"
+                            type="monotone"
+                            dataKey="facebook"
+                            stroke="#4267B2"
+                            activeDot={{ r: 8 }}
+                            connectNulls
+                          />
+                          
+                          <Line
+                            name="Instagram"
+                            type="monotone"
+                            dataKey="instagram"
+                            stroke="#E1306C"
+                            activeDot={{ r: 8 }}
+                            connectNulls
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+                
+                <CardFooter className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedPost) {
+                        fetchPostHistory(selectedPost);
+                      }
+                    }}
+                    disabled={!selectedPost || loadingHistory}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${loadingHistory ? 'animate-spin' : ''}`} />
+                    {loadingHistory ? 'Refreshing...' : 'Refresh Data'}
+                  </Button>
+                  
+                  <div className="text-xs text-gray-500">
+                    {postHistoryData?.dates?.length 
+                      ? `${postHistoryData.dates.length} data point${postHistoryData.dates.length > 1 ? 's' : ''}`
+                      : 'No data points'
+                    }
+                  </div>
+                </CardFooter>
               </Card>
             </TabsContent>
             

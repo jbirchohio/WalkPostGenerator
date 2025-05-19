@@ -248,14 +248,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { limit, offset, postType, publishStatus, sortBy, sortOrder } = req.query;
       
-      const result = await getPosts(
-        Number(limit) || 20,
-        Number(offset) || 0,
-        postType as string | undefined,
-        publishStatus as string | undefined,
-        sortBy as string || 'createdAt',
-        (sortOrder as 'asc' | 'desc') || 'desc'
-      );
+      const queryParams = {
+        limit: Number(limit) || 20,
+        offset: Number(offset) || 0,
+        postType: postType as string | undefined,
+        publishStatus: publishStatus as string | undefined,
+        sortBy: sortBy as string || 'createdAt',
+        sortOrder: (sortOrder as 'asc' | 'desc') || 'desc'
+      };
+      
+      const result = await getPosts(queryParams);
       
       return res.json(result);
     } catch (error: any) {

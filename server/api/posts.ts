@@ -94,13 +94,21 @@ export async function updatePost(
  * Get a list of posts based on query parameters
  */
 export async function getPosts(
-  limit: number = 20,
-  offset: number = 0,
-  postType?: string,
-  publishStatus?: string,
-  sortBy: string = 'createdAt',
-  sortOrder: 'asc' | 'desc' = 'desc'
+  queryParams: {
+    limit?: number;
+    offset?: number;
+    postType?: string;
+    publishStatus?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}
 ): Promise<{ success: boolean; posts?: Post[]; count?: number; error?: string }> {
+  // Set defaults
+  const limit = queryParams.limit || 20;
+  const offset = queryParams.offset || 0;
+  const sortBy = queryParams.sortBy || 'createdAt';
+  const sortOrder = queryParams.sortOrder || 'desc';
+  const { postType, publishStatus } = queryParams;
   try {
     // Build query conditions
     let query = db.select().from(posts);
