@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FacebookPostRequest } from '@shared/schema';
+import { uploadToCloudinary } from './cloudinary';
 
 
 // Instagram Graph API details
@@ -34,13 +35,13 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     // For direct Instagram posting, we need to ensure we have a public HTTPS URL
     console.log("Instagram requires a publicly accessible HTTPS URL for image posting");
     
-    // For Instagram, we'll use an actual image that meets their requirements
-    // Your cloudinary account is not properly configured yet, but we can use your image directly
-    const imageUrl = postData.image;
-    console.log("Using original image URL for Instagram posting:", imageUrl);
+    // Upload the image to Cloudinary to get an Instagram-compatible URL
+    console.log("Uploading image to Cloudinary for Instagram compatibility");
+    const cloudinaryUrl = await uploadToCloudinary(postData.image);
+    console.log("Image uploaded to Cloudinary successfully:", cloudinaryUrl);
     
-    // Step 1: Create a container for the media
-    const containerId = await createMediaContainer(imageUrl, postData.message);
+    // Step 1: Create a container for the media using the Cloudinary URL
+    const containerId = await createMediaContainer(cloudinaryUrl, postData.message);
     
     if (!containerId) {
       throw new Error('Failed to create Instagram media container');
@@ -59,28 +60,7 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
   }
 }
 
-/**
- * Saves a base64 image to a local file
- */
-// NOTE: This function is no longer used for direct posting
-// but kept for local image saving functionality
-async function saveBase64ImageLocally(base64Image: string): Promise<string> {
-  try {
-    // Check if the image is already a URL (e.g., from a previous save operation)
-    if (base64Image.startsWith('http')) {
-      console.log("Image is already a URL:", base64Image);
-      return base64Image;
-    }
-    
-    // For Instagram, we need a guaranteed public HTTPS URL
-    // We'll return a known good image URL from Unsplash
-    return "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
-  } catch (error) {
-    console.error("Error handling image for Instagram:", error);
-    // Return a fallback image URL
-    return "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
-  }
-}
+// We no longer need the saveBase64ImageLocally function as we're using Cloudinary for image hosting
 
 /**
  * Creates a media container for Instagram
@@ -102,15 +82,14 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
     // The endpoint to create the media container
     const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
     
-    // Use the provided image URL directly
-    const publicImageUrl = imageUrl;
-    console.log("Using image URL for Instagram:", publicImageUrl);
+    // imageUrl should now be a Cloudinary URL that Instagram can access
+    console.log("Using Cloudinary image URL for Instagram:", imageUrl);
     
     // For Instagram, we need proper params with the image URL
     const params = new URLSearchParams();
     params.append('caption', caption);
     params.append('access_token', FACEBOOK_ACCESS_TOKEN);
-    params.append('image_url', publicImageUrl);
+    params.append('image_url', imageUrl);
     
     console.log("Making API request to Instagram for media container creation...");
     
