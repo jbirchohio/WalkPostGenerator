@@ -9,6 +9,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Facebook, Instagram, Heart, MessageSquare, Share2 } from "lucide-react";
 import {
   BarChart,
   Bar,
