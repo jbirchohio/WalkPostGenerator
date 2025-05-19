@@ -33,9 +33,9 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     // For direct Instagram posting, we need to ensure we have a public HTTPS image URL
     console.log("Instagram requires a publicly accessible HTTPS URL for image posting");
     
-    // For testing, we'll use a known good public image 
-    const imageUrl = "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
-    console.log("Using guaranteed public HTTPS URL for Instagram posting:", imageUrl);
+    // Use the actual image URL provided in the request
+    const imageUrl = postData.image;
+    console.log("Using image URL for Instagram posting:", imageUrl);
     
     // Step 1: Create a container for the media
     const containerId = await createMediaContainer(imageUrl, postData.message);
@@ -47,12 +47,7 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     // Step 2: Publish the container
     const publishResult = await publishMedia(containerId);
     
-    // Clean up the temporary file
-    try {
-      fs.unlinkSync(imagePath);
-    } catch (err) {
-      console.warn('Failed to delete temporary image file:', err);
-    }
+    // No temporary file cleanup needed as we're using the URL directly
     
     return publishResult;
   } catch (error: any) {
@@ -108,8 +103,8 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
     const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
     
     // Instagram requires a publicly accessible HTTPS URL for the image
-    // We'll use a guaranteed public image for testing
-    const publicImageUrl = "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
+    // Use the provided image URL
+    const publicImageUrl = imageUrl;
     
     console.log("Using public HTTPS image URL for Instagram:", publicImageUrl);
     
