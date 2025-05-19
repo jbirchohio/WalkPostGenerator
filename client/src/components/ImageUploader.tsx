@@ -95,11 +95,12 @@ export default function ImageUploader({ selectedImage, setSelectedImage }: Image
             className="hidden" 
             onChange={handleImageChange}
           />
+          {/* Use proper camera input for mobile devices */}
           <input 
             type="file" 
             ref={cameraInputRef}
             accept="image/*" 
-            capture="environment" 
+            capture 
             className="hidden" 
             onChange={handleImageChange}
           />
