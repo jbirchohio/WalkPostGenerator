@@ -42,6 +42,7 @@ export default function PostGenerator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
 
   const form = useForm<FormValues>({
@@ -141,8 +142,8 @@ export default function PostGenerator({
       const payload = {
         message: generatedPost,
         image: selectedImage,
-        postType: currentDraft?.postType || form.getValues("postType"),
-        productName: currentDraft?.product || form.getValues("productName")
+        postType: currentDraft?.postType || form.getValues().postType,
+        productName: currentDraft?.product || form.getValues().productName
       };
       
       // Send the request to the Facebook posting API
@@ -188,27 +189,45 @@ export default function PostGenerator({
       return;
     }
     
+    setIsPosting(true);
+    
     try {
-      toast({
-        title: "Instagram Integration",
-        description: "In a production environment, this would post to your Instagram business account."
+      // Prepare the post payload with all necessary data
+      const payload = {
+        message: generatedPost,
+        image: selectedImage,
+        postType: currentDraft?.postType || form.getValues().postType,
+        productName: currentDraft?.product || form.getValues().productName
+      };
+      
+      // Send the request to the Instagram posting API
+      const response = await fetch('/api/instagram/post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
       
-      // Simulate successful post after a delay
-      setTimeout(() => {
-        toast({
-          title: "Success",
-          description: "Your content is ready for Instagram. In a production environment, this would be posted to your business account."
-        });
-      }, 1500);
+      const result = await response.json();
       
+      if (result.success) {
+        toast({
+          title: "Posted to Instagram",
+          description: "Your post has been successfully shared to your Instagram account."
+        });
+      } else {
+        throw new Error(result.error || result.message || "Error posting to Instagram");
+      }
     } catch (error: any) {
       console.error("Error with Instagram share:", error);
       toast({
         title: "Error",
-        description: "Something went wrong preparing your Instagram post",
+        description: error.message || "Something went wrong posting to Instagram",
         variant: "destructive",
       });
+    } finally {
+      setIsPosting(false);
     }
   };
 
