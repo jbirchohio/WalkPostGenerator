@@ -3,13 +3,15 @@ import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Facebook, Instagram } from "lucide-react";
+import { Loader2, Facebook, Instagram, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import ImageUploader from "./ImageUploader";
 import PostPreview from "./PostPreview";
 import { type PostDraft, type GeneratePostRequest } from "@/types";
@@ -37,6 +39,9 @@ export default function PostGenerator({
     currentDraft ? currentDraft.text : null
   );
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -212,6 +217,31 @@ export default function PostGenerator({
     }
   };
 
+  // Handle post editing
+  const handleEditPost = (editedText: string) => {
+    setGeneratedPost(editedText);
+    setIsEditing(false);
+    
+    toast({
+      title: "Post Updated",
+      description: "Your post has been successfully edited.",
+    });
+  };
+  
+  // Handle post scheduling
+  const handleSchedulePost = (date: Date) => {
+    setScheduledDate(date);
+    setIsScheduling(false);
+    
+    toast({
+      title: "Post Scheduled",
+      description: `Your post will be published on ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+    });
+    
+    // In a real implementation, you would save this to a database or service
+    // For now, we're just showing the scheduled date in the UI
+  };
+  
   return (
     <Card className="bg-white rounded-lg shadow-lg p-6 max-w-3xl mx-auto border-2 border-[#ffd700]">
       <CardContent className="p-0">
@@ -322,11 +352,31 @@ export default function PostGenerator({
             <PostPreview 
               text={generatedPost} 
               image={selectedImage}
+              editable={true}
+              onEdit={() => setIsEditing(true)}
             />
             
             {/* Action Buttons */}
             <div className="mt-6 space-y-4">
               <h4 className="font-medium text-gray-700">Share your post:</h4>
+              
+              {/* Action Buttons Row - Share & Schedule */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  className="flex-1 py-3 px-4 bg-white hover:bg-gray-100 text-black border border-gray-300 font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors flex justify-center items-center"
+                >
+                  <Loader2 className="h-5 w-5 mr-2" />
+                  Edit Post
+                </Button>
+                <Button
+                  onClick={() => setIsScheduling(true)}
+                  className="flex-1 py-3 px-4 bg-white hover:bg-gray-100 text-black border border-gray-300 font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors flex justify-center items-center"
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Schedule Post
+                </Button>
+              </div>
               
               {/* Social Media Share Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
@@ -345,6 +395,19 @@ export default function PostGenerator({
                   Share to Instagram
                 </Button>
               </div>
+              
+              {scheduledDate && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="flex items-center">
+                    <Clock className="h-5 w-5 text-yellow-600 mr-2" />
+                    <p className="text-sm text-yellow-800">
+                      Post scheduled for {scheduledDate.toLocaleDateString()} at{" "}
+                      {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               
               {/* Utility Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 mt-3">
