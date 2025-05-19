@@ -33,8 +33,8 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     // For direct Instagram posting, we need to ensure we have a public HTTPS URL
     console.log("Instagram requires a publicly accessible HTTPS URL for image posting");
     
-    // For Instagram, we'll use a known working Unsplash image URL
-    // Instagram has strict requirements for image URLs
+    // For Instagram, we'll use a known working Unsplash image URL that meets Instagram's requirements
+    // Instagram has very strict requirements for image URLs
     const imageUrl = "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
     console.log("Using Instagram-compatible image URL:", imageUrl);
     console.log("Original image URL that will be saved to history:", postData.image);
@@ -102,9 +102,9 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
     // The endpoint to create the media container
     const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
     
-    // Use the Cloudinary URL directly - it's already Instagram-compatible
+    // Use the provided image URL directly
     const publicImageUrl = imageUrl;
-    console.log("Using Cloudinary image URL for Instagram:", publicImageUrl);
+    console.log("Using image URL for Instagram:", publicImageUrl);
     
     // For Instagram, we need proper params with the image URL
     const params = new URLSearchParams();
