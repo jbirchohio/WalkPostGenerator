@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { postGenerationSchema, facebookPostSchema } from "@shared/schema";
 import { generatePostWithOpenAI } from "./api/openai";
 import { postToFacebook } from "./api/facebook";
+import { postToInstagram } from "./api/instagram";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
@@ -61,6 +62,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ 
         success: false,
         message: "Error posting to Facebook", 
+        error: error.message 
+      });
+    }
+  });
+
+  // Instagram posting route
+  app.post("/api/instagram/post", async (req: Request, res: Response) => {
+    try {
+      // Validate the request
+      const result = facebookPostSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid request data", 
+          errors: result.error.format() 
+        });
+      }
+      
+      // Post to Instagram
+      const igResponse = await postToInstagram(result.data);
+      
+      // Return the result
+      return res.json(igResponse);
+      
+    } catch (error: any) {
+      console.error("Error posting to Instagram:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Error posting to Instagram", 
         error: error.message 
       });
     }

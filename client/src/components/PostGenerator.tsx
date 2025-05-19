@@ -164,35 +164,51 @@ export default function PostGenerator({
     }
   };
 
-  const handleShareToInstagram = () => {
-    toast({
-      title: "Instagram",
-      description: "To share to Instagram, copy the text and image to post via the Instagram app on your device.",
-    });
+  const handleShareToInstagram = async () => {
+    if (!generatedPost) return;
     
-    // Automatically copy the text
-    if (generatedPost) {
-      navigator.clipboard.writeText(generatedPost)
-        .then(() => {
-          toast({
-            title: "Text Copied",
-            description: "Post text copied to clipboard. Download the image and open Instagram to complete your post.",
-          });
-        })
-        .catch((err) => {
-          console.error("Failed to copy text:", err);
-        });
+    if (!selectedImage) {
+      toast({
+        title: "Image Required",
+        description: "Instagram posting requires an image. Please add an image to your post.",
+        variant: "destructive"
+      });
+      return;
     }
     
-    // Provide instructions to download the image if available
-    if (selectedImage) {
-      // Create a temporary link to download the image
-      const link = document.createElement('a');
-      link.href = selectedImage;
-      link.download = 'cafe-post-image.jpg';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    try {
+      toast({
+        title: "Posting",
+        description: "Posting to Instagram, please wait...",
+      });
+      
+      // Call our backend to post directly to Instagram
+      const response = await apiRequest("POST", "/api/instagram/post", {
+        message: generatedPost,
+        image: selectedImage
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Posted directly to Instagram!",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to post to Instagram",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error posting to Instagram:", error);
+      toast({
+        title: "Error",
+        description: "Failed to post to Instagram: " + (error?.message || "Unknown error"),
+        variant: "destructive",
+      });
     }
   };
 

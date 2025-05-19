@@ -8,6 +8,7 @@ import { FacebookPostRequest } from '@shared/schema';
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
 const FACEBOOK_PAGE_ID = process.env.FACEBOOK_PAGE_ID;
 const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
+const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
 
 /**
  * Posts a message directly to the Facebook page using the Graph API
