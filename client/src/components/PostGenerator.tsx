@@ -176,12 +176,12 @@ export default function PostGenerator({
   };
 
   return (
-    <Card className="bg-white rounded-lg shadow-lg p-6 max-w-3xl mx-auto">
+    <Card className="bg-white rounded-lg shadow-lg p-6 max-w-3xl mx-auto border-2 border-[#ffd700]">
       <CardContent className="p-0">
         {/* Instructions */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-cafe-brown mb-2">Create a Social Media Post</h2>
-          <p className="text-gray-600">Generate engaging content for your Facebook or Instagram posts using AI.</p>
+          <h2 className="text-xl font-semibold text-black mb-2">Create a Social Media Post</h2>
+          <p className="text-black">Generate engaging content for your Facebook or Instagram posts using AI.</p>
         </div>
 
         {/* Form */}
@@ -251,10 +251,10 @@ export default function PostGenerator({
               )}
             />
 
-            {/* Generate Button - Big and Green */}
+            {/* Generate Button - Black and Yellow */}
             <Button 
               type="submit"
-              className="w-full py-4 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-md shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+              className="w-full py-4 px-6 bg-[#ffd700] hover:bg-[#ccaa00] text-black font-bold text-lg rounded-md shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors"
               disabled={isGenerating}
             >
               <div className="flex items-center justify-center">
@@ -295,14 +295,14 @@ export default function PostGenerator({
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={handleShareToFacebook}
-                  className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex justify-center items-center"
+                  className="flex-1 py-3 px-4 bg-black hover:bg-[#303030] text-[#ffd700] font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors flex justify-center items-center"
                 >
                   <Facebook className="h-5 w-5 mr-2" />
                   Share to Facebook
                 </Button>
                 <Button
                   onClick={handleShareToInstagram}
-                  className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-colors flex justify-center items-center"
+                  className="flex-1 py-3 px-4 bg-black hover:bg-[#303030] text-[#ffd700] font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors flex justify-center items-center"
                 >
                   <Instagram className="h-5 w-5 mr-2" />
                   Share to Instagram
@@ -313,7 +313,7 @@ export default function PostGenerator({
               <div className="flex flex-col sm:flex-row gap-3 mt-3">
                 <Button
                   onClick={handleCopyToClipboard}
-                  className="flex-1 py-2 px-4 bg-cafe-brown hover:bg-cafe-lightBrown text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cafe-brown transition-colors flex justify-center items-center"
+                  className="flex-1 py-2 px-4 bg-[#ffd700] hover:bg-[#ccaa00] text-black font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors flex justify-center items-center"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -323,7 +323,7 @@ export default function PostGenerator({
                 <Button
                   onClick={handleSaveAsDraft}
                   variant="outline"
-                  className="flex-1 py-2 px-4 border border-cafe-brown text-cafe-brown bg-white hover:bg-gray-50 font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cafe-brown transition-colors flex justify-center items-center"
+                  className="flex-1 py-2 px-4 border border-black text-black bg-white hover:bg-[#f0f0f0] font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors flex justify-center items-center"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
@@ -333,7 +333,7 @@ export default function PostGenerator({
                 <Button
                   onClick={() => handleGeneratePost(form.getValues())}
                   variant="secondary"
-                  className="flex-1 py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors flex justify-center items-center"
+                  className="flex-1 py-2 px-4 bg-black hover:bg-[#303030] text-[#ffd700] font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors flex justify-center items-center"
                   disabled={isGenerating}
                 >
                   {isGenerating ? (
