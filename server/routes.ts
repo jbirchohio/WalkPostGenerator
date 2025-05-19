@@ -17,6 +17,10 @@ import {
   getPostAnalytics, 
   getAnalyticsSummary 
 } from "./api/posts";
+import {
+  fetchCombinedPostAnalytics,
+  fetchAccountAnalytics
+} from "./api/analytics";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
