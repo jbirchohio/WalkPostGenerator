@@ -17,6 +17,8 @@ export async function fetchFacebookPostAnalytics(postId: string) {
       throw new Error('Facebook access token not configured');
     }
 
+    console.log(`Fetching Facebook analytics for post ID: ${postId}`);
+    
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${postId}/insights`;
     const params = new URLSearchParams({
       metric: 'post_impressions,post_reactions_by_type_total,post_comments,post_shares',
@@ -60,7 +62,12 @@ export async function fetchInstagramPostAnalytics(postId: string) {
       throw new Error('Instagram credentials not configured');
     }
 
-    const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${postId}/insights`;
+    console.log(`Fetching Instagram analytics for post ID: ${postId}`);
+    
+    // Instagram media ID format requires the business account ID prefix for insights
+    const mediaId = postId.includes('_') ? postId : `${INSTAGRAM_BUSINESS_ACCOUNT_ID}_${postId}`;
+    
+    const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${mediaId}/insights`;
     const params = new URLSearchParams({
       metric: 'impressions,reach,engagement,saved',
       access_token: FACEBOOK_ACCESS_TOKEN
