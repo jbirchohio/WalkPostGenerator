@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { FacebookPostRequest } from '@shared/schema';
 
+
 // Instagram Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
 const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
@@ -33,11 +34,10 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     // For direct Instagram posting, we need to ensure we have a public HTTPS URL
     console.log("Instagram requires a publicly accessible HTTPS URL for image posting");
     
-    // For Instagram, we'll use a known working Unsplash image URL that meets Instagram's requirements
-    // Instagram has very strict requirements for image URLs
-    const imageUrl = "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
-    console.log("Using Instagram-compatible image URL:", imageUrl);
-    console.log("Original image URL that will be saved to history:", postData.image);
+    // For Instagram, we'll use an actual image that meets their requirements
+    // Your cloudinary account is not properly configured yet, but we can use your image directly
+    const imageUrl = postData.image;
+    console.log("Using original image URL for Instagram posting:", imageUrl);
     
     // Step 1: Create a container for the media
     const containerId = await createMediaContainer(imageUrl, postData.message);
