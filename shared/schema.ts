@@ -24,3 +24,11 @@ export const postGenerationSchema = z.object({
 });
 
 export type PostGenerationRequest = z.infer<typeof postGenerationSchema>;
+
+// Define the schema for Facebook posting
+export const facebookPostSchema = z.object({
+  message: z.string(),
+  image: z.string().optional(),
+});
+
+export type FacebookPostRequest = z.infer<typeof facebookPostSchema>;

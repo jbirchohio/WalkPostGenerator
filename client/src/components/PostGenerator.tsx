@@ -125,22 +125,43 @@ export default function PostGenerator({
       });
   };
 
-  const handleShareToFacebook = () => {
+  const handleShareToFacebook = async () => {
     if (!generatedPost) return;
     
-    // Prepare the post text
-    const encodedPost = encodeURIComponent(generatedPost);
-    
-    // Create Facebook sharing URL
-    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=https://awalkinthepark.cafe&quote=${encodedPost}`;
-    
-    // Open in a new window
-    window.open(facebookUrl, '_blank', 'width=600,height=400');
-    
-    toast({
-      title: "Facebook",
-      description: "Opening Facebook sharing dialog...",
-    });
+    try {
+      toast({
+        title: "Posting",
+        description: "Posting to Facebook, please wait...",
+      });
+      
+      // Call our backend to post directly to Facebook
+      const response = await apiRequest("POST", "/api/facebook/post", {
+        message: generatedPost,
+        image: selectedImage || undefined
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Posted directly to Facebook!",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to post to Facebook",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) { // Explicitly type error as any
+      console.error("Error posting to Facebook:", error);
+      toast({
+        title: "Error",
+        description: "Failed to post to Facebook: " + (error?.message || "Unknown error"),
+        variant: "destructive",
+      });
+    }
   };
 
   const handleShareToInstagram = () => {
