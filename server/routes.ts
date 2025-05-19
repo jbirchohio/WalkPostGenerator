@@ -174,12 +174,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // If it's already a URL, use it directly
           imageUrl = result.data.image;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error processing image for Instagram:", err);
         return res.status(500).json({
           success: false,
           message: "Error processing image for Instagram post",
-          error: err.message
+          error: err.message || "Unknown error"
         });
       }
       
