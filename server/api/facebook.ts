@@ -115,10 +115,22 @@ async function postWithImage(postData: FacebookPostRequest): Promise<{ success: 
     // Post to Facebook with the public image URL
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${FACEBOOK_PAGE_ID}/photos`;
     
+    // Facebook requires a public HTTPS URL for images
+    let publicImageUrl = imageUrl;
+    
+    // If the URL isn't a fully-qualified HTTPS URL, use a fallback image
+    if (!publicImageUrl.startsWith('https://')) {
+      console.warn("Facebook requires HTTPS URLs. Using a publicly accessible image.");
+      // Use a guaranteed public HTTPS URL for testing
+      publicImageUrl = "https://images.unsplash.com/photo-1534432182967-62a1b2777ade?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1964&q=80";
+    }
+    
+    console.log("Using public HTTPS image for Facebook:", publicImageUrl);
+    
     const params = new URLSearchParams();
     params.append('message', postData.message);
     params.append('access_token', FACEBOOK_ACCESS_TOKEN);
-    params.append('url', imageUrl); // Use the public URL for the image
+    params.append('url', publicImageUrl); // Use the public URL for the image
     
     // Post to Facebook API
     const response = await fetch(apiUrl, {

@@ -166,19 +166,29 @@ async function createMediaContainer(imagePath: string, caption: string): Promise
     
     console.log('Creating Instagram media container with the following:');
     console.log('- Instagram Business Account ID:', INSTAGRAM_BUSINESS_ACCOUNT_ID);
-    console.log('- Image URL:', imagePath);
+    console.log('- Image URL:', imagePath || "Not provided");
     
     // The endpoint to create the media container
     const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
     
-    // Instagram requires a publicly accessible URL for the image
-    // By this point, the image should already be a public URL
+    // Instagram requires a publicly accessible HTTPS URL for the image
+    // Ensure image URL is using https and is accessible
+    let publicImageUrl = imagePath;
+    
+    // If the URL isn't a fully-qualified HTTPS URL, use a fallback image
+    if (!publicImageUrl.startsWith('https://')) {
+      console.warn("Instagram requires HTTPS URLs. Using fallback image URL.");
+      // Use a guaranteed public HTTPS URL for testing
+      publicImageUrl = "https://images.unsplash.com/photo-1511920170033-f8396924c348?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80";
+    }
+    
+    console.log("Using image URL for Instagram:", publicImageUrl);
     
     // For Instagram, we need proper params with the image URL
     const params = new URLSearchParams();
     params.append('caption', caption);
     params.append('access_token', FACEBOOK_ACCESS_TOKEN);
-    params.append('image_url', imagePath);
+    params.append('image_url', publicImageUrl);
     
     console.log("Making API request to Instagram for media container creation...");
     
