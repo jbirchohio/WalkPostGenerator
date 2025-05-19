@@ -202,8 +202,8 @@ export async function fetchInstagramPostAnalytics(postId: string) {
       metrics.saved = 1;
       metrics.shares = 1;
       metrics.clicks = 0;
-    } 
-    // For other posts that don't have metrics yet
+    }
+    // For other Instagram posts that don't have metrics yet
     else {
       // If we didn't get metrics from the API, use reasonable defaults
       metrics.likes = metrics.likes || 0;
