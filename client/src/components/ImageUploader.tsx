@@ -23,12 +23,52 @@ export default function ImageUploader({ selectedImage, setSelectedImage }: Image
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check file size
+    const maxSizeMB = 5;
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    
+    if (file.size > maxSizeBytes) {
+      alert(`Image is too large. Please select an image under ${maxSizeMB}MB.`);
+      return;
+    }
+
+    // Compress and resize image before setting it
+    compressImage(file, 1200, 0.7);
+  };
+
+  // Function to compress and resize images
+  const compressImage = (file: File, maxWidth: number, quality: number) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setSelectedImage(result);
-    };
     reader.readAsDataURL(file);
+    
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      
+      img.onload = () => {
+        // Create canvas for resizing
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Calculate new dimensions if needed
+        if (width > maxWidth) {
+          height = Math.round(height * maxWidth / width);
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress image
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Get compressed image
+        const compressedImageData = canvas.toDataURL('image/jpeg', quality);
+        setSelectedImage(compressedImageData);
+      };
+    };
   };
 
   const handleRemoveImage = () => {
