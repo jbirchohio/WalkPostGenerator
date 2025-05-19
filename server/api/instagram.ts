@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FacebookPostRequest } from '@shared/schema';
+import { uploadToCloudinary } from './cloudinary';
 
 // Instagram Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
@@ -30,15 +31,16 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
 
     console.log("Attempting to post to Instagram Business Account ID:", INSTAGRAM_BUSINESS_ACCOUNT_ID);
 
-    // For direct Instagram posting, we need to ensure we have a public HTTPS image URL
+    // For direct Instagram posting, we need to ensure we have a public HTTPS URL
     console.log("Instagram requires a publicly accessible HTTPS URL for image posting");
     
-    // Use the provided image URL - it should now be a proper HTTPS URL
-    const imageUrl = postData.image;
-    console.log("Using image URL for Instagram posting:", imageUrl);
+    // Upload the image to Cloudinary to get an Instagram-compatible URL
+    console.log("Uploading image to Cloudinary for Instagram compatibility");
+    const cloudinaryUrl = await uploadToCloudinary(postData.image);
+    console.log("Image uploaded to Cloudinary:", cloudinaryUrl);
     
     // Step 1: Create a container for the media
-    const containerId = await createMediaContainer(imageUrl, postData.message);
+    const containerId = await createMediaContainer(cloudinaryUrl, postData.message);
     
     if (!containerId) {
       throw new Error('Failed to create Instagram media container');
@@ -95,22 +97,14 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
     
     console.log('Creating Instagram media container with the following:');
     console.log('- Instagram Business Account ID:', INSTAGRAM_BUSINESS_ACCOUNT_ID);
-    console.log('- Original Image URL:', imageUrl || "Not provided");
+    console.log('- Image URL:', imageUrl || "Not provided");
     
     // The endpoint to create the media container
     const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
     
-    // Instagram requires a publicly accessible HTTPS URL for the image
-    // Make sure the image URL is HTTPS
-    let publicImageUrl = imageUrl;
-    
-    // If the URL is http, try to convert to https
-    if (publicImageUrl.startsWith('http://')) {
-      publicImageUrl = publicImageUrl.replace('http://', 'https://');
-      console.log("Converted image URL to HTTPS:", publicImageUrl);
-    }
-    
-    console.log("Using image URL for Instagram:", publicImageUrl);
+    // Use the Cloudinary URL directly - it's already Instagram-compatible
+    const publicImageUrl = imageUrl;
+    console.log("Using Cloudinary image URL for Instagram:", publicImageUrl);
     
     // For Instagram, we need proper params with the image URL
     const params = new URLSearchParams();
