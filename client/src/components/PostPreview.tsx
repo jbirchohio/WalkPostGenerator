@@ -1,9 +1,11 @@
 interface PostPreviewProps {
   text: string;
   image: string | null;
+  onEdit?: () => void;
+  editable?: boolean;
 }
 
-export default function PostPreview({ text, image }: PostPreviewProps) {
+export default function PostPreview({ text, image, onEdit, editable = false }: PostPreviewProps) {
   return (
     <div className="border border-gray-300 rounded-lg overflow-hidden bg-white mb-6">
       {/* Preview Header */}
@@ -16,7 +18,7 @@ export default function PostPreview({ text, image }: PostPreviewProps) {
       </div>
       
       {/* Preview Content */}
-      <div className="p-4">
+      <div className="p-4 relative">
         <div className="text-sm mb-4 whitespace-pre-wrap">
           {text}
         </div>
@@ -29,6 +31,18 @@ export default function PostPreview({ text, image }: PostPreviewProps) {
               alt="Post preview" 
             />
           </div>
+        )}
+        
+        {editable && (
+          <button 
+            onClick={onEdit}
+            className="absolute top-3 right-3 bg-black text-yellow-400 p-2 rounded-full hover:bg-gray-800 transition-colors"
+            title="Edit this post"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
         )}
       </div>
       
