@@ -69,7 +69,7 @@ export async function fetchInstagramPostAnalytics(postId: string) {
     
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${mediaId}/insights`;
     const params = new URLSearchParams({
-      metric: 'impressions,reach,engagement,saved',
+      metric: 'impressions,reach,saved,likes,comments,shares',
       access_token: FACEBOOK_ACCESS_TOKEN
     });
 
@@ -205,12 +205,15 @@ function processInstagramMetrics(metricsData: any[]) {
     engagement: 0,
     likes: 0,
     comments: 0,
-    saved: 0
+    saved: 0,
+    shares: 0
   };
 
   if (!metricsData || !Array.isArray(metricsData)) {
     return metrics;
   }
+
+  console.log('Processing Instagram metrics data:', JSON.stringify(metricsData, null, 2));
 
   // Process each metric type
   metricsData.forEach(metric => {
@@ -221,18 +224,23 @@ function processInstagramMetrics(metricsData: any[]) {
       case 'reach':
         metrics.reach = metric.values[0]?.value || 0;
         break;
-      case 'engagement':
-        metrics.engagement = metric.values[0]?.value || 0;
-        // Estimate likes and comments as a portion of engagement
-        // This is a rough approximation as Instagram doesn't provide direct access
-        metrics.likes = Math.round(metrics.engagement * 0.7); // 70% of engagement
-        metrics.comments = Math.round(metrics.engagement * 0.2); // 20% of engagement
+      case 'likes':
+        metrics.likes = metric.values[0]?.value || 0;
+        break;
+      case 'comments':
+        metrics.comments = metric.values[0]?.value || 0;
+        break;  
+      case 'shares':
+        metrics.shares = metric.values[0]?.value || 0;
         break;
       case 'saved':
         metrics.saved = metric.values[0]?.value || 0;
         break;
     }
   });
+  
+  // Calculate engagement based on actual metrics
+  metrics.engagement = metrics.likes + metrics.comments + metrics.shares + metrics.saved;
 
   return metrics;
 }
