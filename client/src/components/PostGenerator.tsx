@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -36,6 +36,7 @@ export default function PostGenerator({
   const [generatedPost, setGeneratedPost] = useState<string | null>(
     currentDraft ? currentDraft.text : null
   );
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -51,11 +52,13 @@ export default function PostGenerator({
     },
     onSuccess: (data) => {
       setGeneratedPost(data.text);
+      setIsGenerating(false);
       
       // Scroll to results
       document.getElementById("resultsContainer")?.scrollIntoView({ behavior: "smooth" });
     },
     onError: (error) => {
+      setIsGenerating(false);
       toast({
         title: "Error",
         description: `Failed to generate post: ${error.message}`,
@@ -65,6 +68,7 @@ export default function PostGenerator({
   });
 
   const handleGeneratePost = (values: FormValues) => {
+    setIsGenerating(true);
     const requestData: GeneratePostRequest = {
       productName: values.productName || undefined,
       postType: values.postType,
@@ -119,6 +123,56 @@ export default function PostGenerator({
           variant: "destructive",
         });
       });
+  };
+
+  const handleShareToFacebook = () => {
+    if (!generatedPost) return;
+    
+    // Prepare the post text
+    const encodedPost = encodeURIComponent(generatedPost);
+    
+    // Create Facebook sharing URL
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=https://awalkinthepark.cafe&quote=${encodedPost}`;
+    
+    // Open in a new window
+    window.open(facebookUrl, '_blank', 'width=600,height=400');
+    
+    toast({
+      title: "Facebook",
+      description: "Opening Facebook sharing dialog...",
+    });
+  };
+
+  const handleShareToInstagram = () => {
+    toast({
+      title: "Instagram",
+      description: "To share to Instagram, copy the text and image to post via the Instagram app on your device.",
+    });
+    
+    // Automatically copy the text
+    if (generatedPost) {
+      navigator.clipboard.writeText(generatedPost)
+        .then(() => {
+          toast({
+            title: "Text Copied",
+            description: "Post text copied to clipboard. Download the image and open Instagram to complete your post.",
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to copy text:", err);
+        });
+    }
+    
+    // Provide instructions to download the image if available
+    if (selectedImage) {
+      // Create a temporary link to download the image
+      const link = document.createElement('a');
+      link.href = selectedImage;
+      link.download = 'cafe-post-image.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -197,22 +251,22 @@ export default function PostGenerator({
               )}
             />
 
-            {/* Generate Button */}
+            {/* Generate Button - Big and Green */}
             <Button 
               type="submit"
-              className="w-full py-3 px-4 bg-cafe-green hover:bg-cafe-lightGreen text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cafe-green transition-colors"
-              disabled={generateMutation.isPending}
+              className="w-full py-4 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-md shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+              disabled={isGenerating}
             >
               <div className="flex items-center justify-center">
-                {generateMutation.isPending ? (
+                {isGenerating ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     <span>Brewing your post...</span>
                   </>
                 ) : (
                   <>
-                    <span>Generate Post</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <span>GENERATE POST</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </>
@@ -234,41 +288,64 @@ export default function PostGenerator({
             />
             
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 mt-6">
-              <Button
-                onClick={handleCopyToClipboard}
-                className="flex-1 py-2 px-4 bg-cafe-brown hover:bg-cafe-lightBrown text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cafe-brown transition-colors flex justify-center items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                </svg>
-                Copy to Clipboard
-              </Button>
-              <Button
-                onClick={handleSaveAsDraft}
-                variant="outline"
-                className="flex-1 py-2 px-4 border border-cafe-brown text-cafe-brown bg-white hover:bg-gray-50 font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cafe-brown transition-colors flex justify-center items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                Save as Draft
-              </Button>
-              <Button
-                onClick={() => handleGeneratePost(form.getValues())}
-                variant="secondary"
-                className="flex-1 py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors flex justify-center items-center"
-                disabled={generateMutation.isPending}
-              >
-                {generateMutation.isPending ? (
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                ) : (
+            <div className="mt-6 space-y-4">
+              <h4 className="font-medium text-gray-700">Share your post:</h4>
+              
+              {/* Social Media Share Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={handleShareToFacebook}
+                  className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex justify-center items-center"
+                >
+                  <Facebook className="h-5 w-5 mr-2" />
+                  Share to Facebook
+                </Button>
+                <Button
+                  onClick={handleShareToInstagram}
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-colors flex justify-center items-center"
+                >
+                  <Instagram className="h-5 w-5 mr-2" />
+                  Share to Instagram
+                </Button>
+              </div>
+              
+              {/* Utility Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 mt-3">
+                <Button
+                  onClick={handleCopyToClipboard}
+                  className="flex-1 py-2 px-4 bg-cafe-brown hover:bg-cafe-lightBrown text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cafe-brown transition-colors flex justify-center items-center"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                   </svg>
-                )}
-                Regenerate
-              </Button>
+                  Copy to Clipboard
+                </Button>
+                <Button
+                  onClick={handleSaveAsDraft}
+                  variant="outline"
+                  className="flex-1 py-2 px-4 border border-cafe-brown text-cafe-brown bg-white hover:bg-gray-50 font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cafe-brown transition-colors flex justify-center items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  Save as Draft
+                </Button>
+                <Button
+                  onClick={() => handleGeneratePost(form.getValues())}
+                  variant="secondary"
+                  className="flex-1 py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors flex justify-center items-center"
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                  Regenerate
+                </Button>
+              </div>
             </div>
           </div>
         )}

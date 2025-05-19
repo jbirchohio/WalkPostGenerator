@@ -1,17 +1,11 @@
 import { useState } from "react";
 import PostGenerator from "@/components/PostGenerator";
-import StockPhotoGallery from "@/components/StockPhotoGallery";
 import SavedDrafts from "@/components/SavedDrafts";
 import { type PostDraft } from "@/types";
 
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentDraft, setCurrentDraft] = useState<PostDraft | null>(null);
-
-  // This function will be passed to StockPhotoGallery to select stock images
-  const handleSelectStockImage = (imageUrl: string) => {
-    setSelectedImage(imageUrl);
-  };
 
   // This function will be passed to SavedDrafts to load a draft for editing
   const handleEditDraft = (draft: PostDraft) => {
@@ -41,7 +35,6 @@ export default function Home() {
           currentDraft={currentDraft}
           setCurrentDraft={setCurrentDraft}
         />
-        <StockPhotoGallery onSelectImage={handleSelectStockImage} />
         <SavedDrafts onEditDraft={handleEditDraft} />
       </main>
 
