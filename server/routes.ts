@@ -89,12 +89,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...result.data,
             image: imageUrl
           };
-        } catch (err) {
+        } catch (err: any) {
           console.error("Error processing image for Facebook:", err);
           return res.status(500).json({
             success: false,
             message: "Error processing image for Facebook post",
-            error: err.message
+            error: err.message || "Unknown error"
           });
         }
       }
@@ -433,11 +433,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the post with the new analytics data
       const updateData = {
-        impressions: analyticsResult.analytics.impressions,
-        likes: analyticsResult.analytics.likes,
-        comments: analyticsResult.analytics.comments,
-        shares: analyticsResult.analytics.shares,
-        engagement: analyticsResult.analytics.engagement,
+        impressions: analyticsResult.analytics?.impressions || 0,
+        likes: analyticsResult.analytics?.likes || 0,
+        comments: analyticsResult.analytics?.comments || 0,
+        shares: analyticsResult.analytics?.shares || 0,
+        engagement: analyticsResult.analytics?.engagement || 0,
         lastAnalyticsFetch: new Date()
       };
       

@@ -63,6 +63,7 @@ export default function History() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [refreshingAnalytics, setRefreshingAnalytics] = useState<number | null>(null);
   
   const { toast } = useToast();
 
@@ -107,6 +108,40 @@ export default function History() {
       setError(error.message || 'An error occurred while fetching posts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to refresh analytics for a post
+  const handleRefreshAnalytics = async (id: number) => {
+    setRefreshingAnalytics(id);
+    
+    try {
+      const response = await apiRequest('POST', `/api/posts/${id}/refresh-analytics`);
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Analytics Updated",
+          description: "Post engagement metrics have been refreshed from social media platforms.",
+        });
+        
+        // Refresh the posts list to show updated metrics
+        fetchPosts();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to refresh analytics data",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while refreshing analytics",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingAnalytics(null);
     }
   };
 
@@ -330,6 +365,18 @@ export default function History() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {/* Show analytics refresh button only for published posts */}
+                          {post.publishStatus === "published" && post.publishedTo && post.publishedTo.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={refreshingAnalytics === post.id}
+                              onClick={() => handleRefreshAnalytics(post.id)}
+                              title="Refresh analytics from social media platforms"
+                            >
+                              <BarChart2 className={`h-4 w-4 ${refreshingAnalytics === post.id ? 'animate-spin' : ''}`} />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
