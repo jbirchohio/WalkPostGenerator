@@ -276,16 +276,92 @@ export async function savePostAnalytics(
  */
 export async function getPostAnalytics(
   postId: number
-): Promise<{ success: boolean; analytics?: PostAnalytics[]; error?: string }> {
+): Promise<{ success: boolean; analytics?: PostAnalytics[]; history?: any; error?: string }> {
   try {
     const analytics = await db
       .select()
       .from(postAnalytics)
-      .where(eq(postAnalytics.postId, postId));
+      .where(eq(postAnalytics.postId, postId))
+      .orderBy(postAnalytics.recordedAt);
+    
+    // Group analytics by platform and format for the chart
+    const history = {
+      dates: [] as string[],
+      facebook: {
+        engagement: [] as number[],
+        impressions: [] as number[],
+        likes: [] as number[],
+        comments: [] as number[],
+        shares: [] as number[]
+      },
+      instagram: {
+        engagement: [] as number[],
+        impressions: [] as number[],
+        likes: [] as number[],
+        comments: [] as number[],
+        shares: [] as number[]
+      }
+    };
+    
+    // Create a map to avoid duplicate dates
+    const dateMap = new Map();
+    
+    // Process analytics data by date
+    analytics.forEach(record => {
+      const date = new Date(record.recordedAt).toISOString().split('T')[0];
+      
+      if (!dateMap.has(date)) {
+        dateMap.set(date, true);
+        history.dates.push(date);
+      }
+      
+      if (record.platform === 'facebook') {
+        const index = history.dates.indexOf(date);
+        // If this is a new date, we need to initialize all arrays at this index
+        if (index >= history.facebook.engagement.length) {
+          history.facebook.engagement[index] = (record.likes || 0) + (record.comments || 0) + (record.shares || 0);
+          history.facebook.impressions[index] = record.impressions || 0;
+          history.facebook.likes[index] = record.likes || 0;
+          history.facebook.comments[index] = record.comments || 0;
+          history.facebook.shares[index] = record.shares || 0;
+        }
+      } 
+      else if (record.platform === 'instagram') {
+        const index = history.dates.indexOf(date);
+        // If this is a new date, we need to initialize all arrays at this index
+        if (index >= history.instagram.engagement.length) {
+          history.instagram.engagement[index] = (record.likes || 0) + (record.comments || 0) + (record.shares || 0);
+          history.instagram.impressions[index] = record.impressions || 0;
+          history.instagram.likes[index] = record.likes || 0;
+          history.instagram.comments[index] = record.comments || 0;
+          history.instagram.shares[index] = record.shares || 0;
+        }
+      }
+    });
+    
+    // Fill any gaps in the data
+    for (let i = 0; i < history.dates.length; i++) {
+      if (history.facebook.engagement[i] === undefined) {
+        history.facebook.engagement[i] = 0;
+        history.facebook.impressions[i] = 0;
+        history.facebook.likes[i] = 0;
+        history.facebook.comments[i] = 0;
+        history.facebook.shares[i] = 0;
+      }
+      
+      if (history.instagram.engagement[i] === undefined) {
+        history.instagram.engagement[i] = 0;
+        history.instagram.impressions[i] = 0;
+        history.instagram.likes[i] = 0;
+        history.instagram.comments[i] = 0;
+        history.instagram.shares[i] = 0;
+      }
+    }
     
     return {
       success: true,
-      analytics
+      analytics,
+      history
     };
   } catch (error: any) {
     console.error('Error getting post analytics:', error);
