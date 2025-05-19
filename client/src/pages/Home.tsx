@@ -122,16 +122,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen pb-16 relative bg-white">
-      {/* Header */}
-      <header className="bg-black text-[#ffd700] shadow-md">
-        <div className="container mx-auto py-4 px-4 flex items-center justify-between">
-          <h1 className="text-xl md:text-2xl font-bold">A Walk in the Park Cafe</h1>
-          <p className="text-sm md:text-base">Post Generator</p>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold text-center mb-6">Post Generator</h1>
         <PostGenerator 
           selectedImage={selectedImage} 
           setSelectedImage={setSelectedImage} 
@@ -140,11 +133,6 @@ export default function Home() {
         />
         <SavedDrafts onEditDraft={handleEditDraft} />
       </main>
-
-      {/* Footer */}
-      <footer className="bg-black text-[#ffd700] py-4 text-center text-sm fixed bottom-0 w-full">
-        <p>&copy; {new Date().getFullYear()} A Walk in the Park Cafe - Post Generator</p>
-      </footer>
     </div>
   );
 }
