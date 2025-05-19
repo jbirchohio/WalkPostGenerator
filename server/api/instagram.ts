@@ -106,69 +106,29 @@ async function saveBase64ImageLocally(base64Image: string): Promise<string> {
 async function createMediaContainer(imagePath: string, caption: string): Promise<string | null> {
   try {
     // Instagram has a two-step posting process
-    // First, create a container for the media
-    const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
-    
-    // We need a publicly accessible URL for Instagram
-    let imageUrl;
-    
-    // If this is a local file path, upload it to get a public URL
-    if (imagePath.startsWith('data:')) {
-      // Upload the image to our server to get a public URL
-      const uploadResponse = await fetch(`http://localhost:5000/api/images/upload-base64`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image: imagePath })
-      });
-      
-      const uploadResult = await uploadResponse.json();
-      
-      if (!uploadResult.success || !uploadResult.url) {
-        console.error('Failed to upload image for Instagram:', uploadResult.message || 'Unknown error');
-        return null;
-      }
-      
-      imageUrl = uploadResult.url;
-      console.log('Image uploaded to public URL for Instagram:', imageUrl);
-    } else if (fs.existsSync(imagePath)) {
-      // It's a local file path, read and upload it
-      const imageBuffer = fs.readFileSync(imagePath);
-      const base64Image = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
-      
-      // Upload the image to our server to get a public URL
-      const uploadResponse = await fetch(`http://localhost:5000/api/images/upload-base64`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image: base64Image })
-      });
-      
-      const uploadResult = await uploadResponse.json();
-      
-      if (!uploadResult.success || !uploadResult.url) {
-        console.error('Failed to upload image for Instagram:', uploadResult.message || 'Unknown error');
-        return null;
-      }
-      
-      imageUrl = uploadResult.url;
-      console.log('Image uploaded to public URL for Instagram:', imageUrl);
-    } else {
-      // It's already a URL, use it directly
-      imageUrl = imagePath;
+    // First, verify we have the correct credentials
+    if (!INSTAGRAM_BUSINESS_ACCOUNT_ID || !FACEBOOK_ACCESS_TOKEN) {
+      console.error('Instagram credentials not configured properly');
+      return null;
     }
     
-    // For Instagram, we need to create parameters with the image URL
+    console.log('Creating Instagram media container with the following:');
+    console.log('- Instagram Business Account ID:', INSTAGRAM_BUSINESS_ACCOUNT_ID);
+    console.log('- Image URL:', imagePath);
+    
+    // The endpoint to create the media container
+    const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
+    
+    // Instagram requires a publicly accessible URL for the image
+    // By this point, the image should already be a public URL
+    
+    // For Instagram, we need proper params with the image URL
     const params = new URLSearchParams();
     params.append('caption', caption);
-    params.append('access_token', FACEBOOK_ACCESS_TOKEN!);
+    params.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    params.append('image_url', imagePath);
     
-    // Important: Instagram requires a publicly accessible URL for the image
-    params.append('image_url', imageUrl);
-    
-    console.log("Attempting to create Instagram media container with URL:", imageUrl);
+    console.log("Making API request to Instagram for media container creation...");
     
     const response = await fetch(mediaUrl, {
       method: 'POST',
@@ -179,11 +139,15 @@ async function createMediaContainer(imagePath: string, caption: string): Promise
     
     if (data.error) {
       console.error("Instagram API error:", data.error);
+      if (data.error.code === 100) {
+        console.error("This is likely an issue with the image URL not being publicly accessible to Instagram.");
+        console.error("Instagram requires a fully public HTTPS URL that it can access.");
+      }
       return null;
     }
     
     if (data.id) {
-      console.log("Instagram media container created with ID:", data.id);
+      console.log("Instagram media container created successfully with ID:", data.id);
       return data.id;
     }
     

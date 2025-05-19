@@ -7,6 +7,8 @@ import { postToFacebook } from "./api/facebook";
 import { postToInstagram } from "./api/instagram";
 import { registerImageRoutes } from "./routes-images";
 
+import { saveBase64ImageAndGetUrl } from "./api/upload";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
   
@@ -60,8 +62,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Handle image if present
+      let postData = result.data;
+      
+      if (result.data.image && result.data.image.startsWith('data:')) {
+        try {
+          // Convert image to a public URL
+          const imageUrl = await saveBase64ImageAndGetUrl(result.data.image, req);
+          console.log("Image saved for Facebook and accessible at:", imageUrl);
+          
+          // Update post data with the image URL
+          postData = {
+            ...result.data,
+            image: imageUrl
+          };
+        } catch (err) {
+          console.error("Error processing image for Facebook:", err);
+          return res.status(500).json({
+            success: false,
+            message: "Error processing image for Facebook post",
+            error: err.message
+          });
+        }
+      }
+      
       // Post to Facebook
-      const fbResponse = await postToFacebook(result.data);
+      const fbResponse = await postToFacebook(postData);
       
       // Return the result
       return res.json(fbResponse);
@@ -106,8 +132,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // First, save the image and get a publicly accessible URL
+      let imageUrl;
+      try {
+        if (result.data.image.startsWith('data:')) {
+          imageUrl = await saveBase64ImageAndGetUrl(result.data.image, req);
+          console.log("Image saved for Instagram and accessible at:", imageUrl);
+        } else {
+          // If it's already a URL, use it directly
+          imageUrl = result.data.image;
+        }
+      } catch (err) {
+        console.error("Error processing image for Instagram:", err);
+        return res.status(500).json({
+          success: false,
+          message: "Error processing image for Instagram post",
+          error: err.message
+        });
+      }
+      
+      // Create a modified version of the post data with the image URL
+      const postData = {
+        ...result.data,
+        image: imageUrl
+      };
+      
       // Post to Instagram
-      const igResponse = await postToInstagram(result.data);
+      const igResponse = await postToInstagram(postData);
       
       // Return the result
       return res.json(igResponse);
