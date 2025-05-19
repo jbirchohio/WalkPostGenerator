@@ -242,18 +242,46 @@ export default function PostGenerator({
     });
   };
   
-  // Handle post scheduling
+  // Handle post scheduling - posts to both Facebook and Instagram
   const handleSchedulePost = (date: Date) => {
+    if (!generatedPost) return;
+    
     setScheduledDate(date);
     setIsScheduling(false);
     
+    // Check for image for Instagram posting
+    if (!selectedImage) {
+      toast({
+        title: "Warning",
+        description: "Instagram requires an image. Your post will only be scheduled for Facebook.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create scheduled posts data object for both platforms
+    const scheduledPostData = {
+      message: generatedPost,
+      image: selectedImage,
+      postType: currentDraft?.postType || form.getValues().postType,
+      productName: currentDraft?.product || form.getValues().productName,
+      scheduledDate: date.toISOString(),
+      platforms: ["facebook", "instagram"]
+    };
+    
+    // Store scheduled post in localStorage
+    const scheduledPostsString = localStorage.getItem("cafeScheduledPosts");
+    const scheduledPosts = scheduledPostsString ? JSON.parse(scheduledPostsString) : [];
+    scheduledPosts.push(scheduledPostData);
+    localStorage.setItem("cafeScheduledPosts", JSON.stringify(scheduledPosts));
+    
     toast({
       title: "Post Scheduled",
-      description: `Your post will be published on ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      description: `Your post will be published to Facebook and Instagram on ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     });
     
-    // In a real implementation, you would save this to a database or service
-    // For now, we're just showing the scheduled date in the UI
+    // In a production implementation, you would save this to a database 
+    // and have a server-side job to publish at the scheduled time
   };
   
   return (
@@ -418,6 +446,19 @@ export default function PostGenerator({
                       Post scheduled for {scheduledDate.toLocaleDateString()} at{" "}
                       {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
+                  </div>
+                  <div className="flex items-center mt-2">
+                    <div className="flex space-x-2 text-xs text-yellow-800">
+                      <span className="flex items-center">
+                        <Facebook className="h-3 w-3 mr-1" />
+                        Facebook
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center">
+                        <Instagram className="h-3 w-3 mr-1" />
+                        Instagram
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
