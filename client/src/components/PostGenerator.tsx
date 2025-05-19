@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { Loader2, Facebook, Instagram, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -134,49 +135,26 @@ export default function PostGenerator({
     if (!generatedPost) return;
     
     try {
-      setIsSharingToFacebook(true);
-      
       toast({
-        title: "Facebook Integration Notice",
-        description: "Facebook posting requires proper page access and a public-facing server URL. Would you like to configure these settings now?",
-        action: (
-          <ToastAction altText="Configure" onClick={() => {
-            toast({
-              title: "Facebook Setup",
-              description: "You'll need a Facebook Page ID and Page Access Token to enable direct posting.",
-            });
-          }}>
-            Configure
-          </ToastAction>
-        ),
+        title: "Facebook Integration",
+        description: "In a production environment, this would post to your Facebook page."
       });
       
-      // For demo purposes, simulate a successful post
+      // Simulate successful post after a delay
       setTimeout(() => {
         toast({
-          title: "Demo Mode",
-          description: "In a production environment, this would post to your Facebook page. Content is ready for sharing.",
+          title: "Success",
+          description: "Your content is ready for Facebook. In a production environment, this would be posted to your page."
         });
       }, 1500);
-      
-      // Store the post content in localStorage for demonstration
-      const facebookPosts = JSON.parse(localStorage.getItem('facebookPosts') || '[]');
-      facebookPosts.push({
-        message: generatedPost,
-        image: selectedImage || null,
-        date: new Date().toISOString()
-      });
-      localStorage.setItem('facebookPosts', JSON.stringify(facebookPosts));
       
     } catch (error: any) {
       console.error("Error with Facebook share:", error);
       toast({
         title: "Error",
-        description: "Something went wrong preparing your post: " + (error?.message || "Unknown error"),
+        description: "Something went wrong preparing your Facebook post",
         variant: "destructive",
       });
-    } finally {
-      setIsSharingToFacebook(false);
     }
   };
 
@@ -193,49 +171,26 @@ export default function PostGenerator({
     }
     
     try {
-      setIsSharingToInstagram(true);
-      
       toast({
-        title: "Instagram Integration Notice",
-        description: "Instagram posting requires a Business Account and public-facing server URL. Would you like to configure these settings now?",
-        action: (
-          <ToastAction altText="Configure" onClick={() => {
-            toast({
-              title: "Instagram Setup",
-              description: "You'll need an Instagram Business Account ID and Facebook Page Access Token to enable direct posting.",
-            });
-          }}>
-            Configure
-          </ToastAction>
-        ),
+        title: "Instagram Integration",
+        description: "In a production environment, this would post to your Instagram business account."
       });
       
-      // For demo purposes, simulate a successful post
+      // Simulate successful post after a delay
       setTimeout(() => {
         toast({
-          title: "Demo Mode",
-          description: "In a production environment, this would post to your Instagram account. Content is ready for sharing.",
+          title: "Success",
+          description: "Your content is ready for Instagram. In a production environment, this would be posted to your business account."
         });
       }, 1500);
-      
-      // Store the post content in localStorage for demonstration
-      const instagramPosts = JSON.parse(localStorage.getItem('instagramPosts') || '[]');
-      instagramPosts.push({
-        caption: generatedPost,
-        image: selectedImage,
-        date: new Date().toISOString()
-      });
-      localStorage.setItem('instagramPosts', JSON.stringify(instagramPosts));
       
     } catch (error: any) {
       console.error("Error with Instagram share:", error);
       toast({
         title: "Error",
-        description: "Something went wrong preparing your post: " + (error?.message || "Unknown error"),
+        description: "Something went wrong preparing your Instagram post",
         variant: "destructive",
       });
-    } finally {
-      setIsSharingToInstagram(false);
     }
   };
 
