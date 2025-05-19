@@ -109,41 +109,40 @@ async function createMediaContainer(imagePath: string, caption: string): Promise
     // First, create a container for the media
     const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
     
-    // Create a URL for the image - Instagram needs a publicly accessible URL
-    // In a production environment, you would upload the image to a cloud storage service
-    // For this app, we'll use a direct upload through curl
+    // Read the image file to base64
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
     
-    // Using child_process to execute curl for uploading the image
-    const { exec } = require('child_process');
+    // For Instagram, we need to create a FormData object to upload the image
+    const formData = new URLSearchParams();
+    formData.append('caption', caption);
+    formData.append('access_token', FACEBOOK_ACCESS_TOKEN!);
     
-    return new Promise((resolve) => {
-      const curlCommand = `curl -X POST "${mediaUrl}" \
-        -F "image_url=@${imagePath}" \
-        -F "caption=${encodeURIComponent(caption)}" \
-        -F "access_token=${FACEBOOK_ACCESS_TOKEN}"`;
-      
-      exec(curlCommand, (error: any, stdout: string, stderr: string) => {
-        if (error || stderr) {
-          console.error("Error creating Instagram media container:", error || stderr);
-          return resolve(null);
-        }
-        
-        try {
-          const response = JSON.parse(stdout);
-          if (response.id) {
-            return resolve(response.id);
-          } else if (response.error) {
-            console.error("Instagram API error:", response.error);
-            return resolve(null);
-          }
-        } catch (e) {
-          console.error("Failed to parse Instagram response:", e);
-          return resolve(null);
-        }
-        
-        return resolve(null);
-      });
+    // Instagram allows image_url or upload via form - we'll use image_url with a data URL
+    // Note: In a production application, you would upload to a CDN and provide that URL
+    formData.append('image_url', `data:image/jpeg;base64,${base64Image}`);
+    
+    console.log("Attempting to create Instagram media container...");
+    
+    const response = await fetch(mediaUrl, {
+      method: 'POST',
+      body: formData
     });
+    
+    const data = await response.json() as any;
+    
+    if (data.error) {
+      console.error("Instagram API error:", data.error);
+      return null;
+    }
+    
+    if (data.id) {
+      console.log("Instagram media container created with ID:", data.id);
+      return data.id;
+    }
+    
+    console.error("No container ID returned from Instagram:", data);
+    return null;
   } catch (error) {
     console.error("Error creating Instagram media container:", error);
     return null;

@@ -193,19 +193,24 @@ async function uploadImageToFacebook(
     // Create URL for posting photos to Facebook
     const fbUrl = `https://graph.facebook.com/v18.0/${FACEBOOK_PAGE_ID}/photos`;
     
-    // Create form data
-    const form = new FormData();
-    form.append('access_token', FACEBOOK_ACCESS_TOKEN);
-    form.append('message', message);
+    // For node environments, we need to use URLSearchParams instead of FormData
+    const params = new URLSearchParams();
     
-    // Add the image as a blob with proper MIME type
-    const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
-    form.append('source', imageBlob, 'image.jpg');
+    // Make sure we have the access token
+    if (!FACEBOOK_ACCESS_TOKEN) {
+      return { error: 'Facebook access token is not configured' };
+    }
+    
+    params.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    params.append('message', message);
+    
+    // We'll use the url parameter to pass a data URL directly
+    params.append('url', `data:image/jpeg;base64,${imageData}`);
     
     // Post to Facebook
     const response = await fetch(fbUrl, {
       method: 'POST',
-      body: form
+      body: params
     });
     
     const data = await response.json() as any;

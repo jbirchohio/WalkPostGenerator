@@ -40,6 +40,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Facebook posting route
   app.post("/api/facebook/post", async (req: Request, res: Response) => {
     try {
+      // Check Facebook credentials first
+      if (!process.env.FACEBOOK_ACCESS_TOKEN || !process.env.FACEBOOK_PAGE_ID) {
+        return res.status(401).json({
+          success: false,
+          message: "Facebook credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN and FACEBOOK_PAGE_ID."
+        });
+      }
+      
       // Validate the request
       const result = facebookPostSchema.safeParse(req.body);
       
@@ -70,6 +78,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Instagram posting route
   app.post("/api/instagram/post", async (req: Request, res: Response) => {
     try {
+      // Check Instagram credentials first
+      if (!process.env.FACEBOOK_ACCESS_TOKEN || !process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+        return res.status(401).json({
+          success: false,
+          message: "Instagram credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID."
+        });
+      }
+      
       // Validate the request
       const result = facebookPostSchema.safeParse(req.body);
       
@@ -78,6 +94,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           message: "Invalid request data", 
           errors: result.error.format() 
+        });
+      }
+      
+      // Instagram requires an image
+      if (!result.data.image) {
+        return res.status(400).json({
+          success: false,
+          message: "Instagram requires an image for posting"
         });
       }
       
