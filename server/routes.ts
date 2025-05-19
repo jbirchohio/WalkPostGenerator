@@ -5,6 +5,7 @@ import { postGenerationSchema, facebookPostSchema } from "@shared/schema";
 import { generatePostWithOpenAI } from "./api/openai";
 import { postToFacebook } from "./api/facebook";
 import { postToInstagram } from "./api/instagram";
+import { registerImageRoutes } from "./routes-images";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
@@ -121,6 +122,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Register image upload routes
+  registerImageRoutes(app);
+  
   const httpServer = createServer(app);
 
   return httpServer;

@@ -1,11 +1,34 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import fileUpload from 'express-fileupload';
+import path from 'path';
+import fs from 'fs';
+import cors from 'cors';
 
 const app = express();
 // Increase JSON body size limit to 50MB for handling image uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Set up CORS
+app.use(cors());
+
+// Set up file upload middleware
+app.use(fileUpload({
+  createParentPath: true,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
+  abortOnLimit: true
+}));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve uploaded images as static files
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
 app.use((req, res, next) => {
   const start = Date.now();
