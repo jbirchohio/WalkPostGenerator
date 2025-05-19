@@ -125,67 +125,91 @@ export default function PostGenerator({
       });
   };
 
-  const handleShareToFacebook = () => {
+  const handleShareToFacebook = async () => {
     if (!generatedPost) return;
     
-    // Create the URL with encoded post content
-    const encodedPost = encodeURIComponent(generatedPost);
-    const link = encodeURIComponent("https://awalkinthepark.cafe");
-    
-    // Direct Facebook sharing URL
-    const facebookShareUrl = `https://www.facebook.com/dialog/feed?app_id=123456789&display=popup&link=${link}&quote=${encodedPost}&hashtag=%23AWalkInTheParkCafe`;
-    
-    // Open Facebook sharing dialog
-    window.open(facebookShareUrl, '_blank', 'width=626,height=436');
-    
-    toast({
-      title: "Facebook",
-      description: "Opening Facebook sharing dialog. Complete the post in the popup window.",
-    });
-  };
-
-  const handleShareToInstagram = () => {
-    if (!generatedPost) return;
-    
-    // For Instagram, since direct sharing isn't available via web API,
-    // help the user copy the content and download the image
-    
-    // Copy the post text to clipboard
-    navigator.clipboard.writeText(generatedPost)
-      .then(() => {
+    try {
+      toast({
+        title: "Posting",
+        description: "Posting to Facebook, please wait...",
+      });
+      
+      // Call our backend to post directly to Facebook
+      const response = await apiRequest("POST", "/api/facebook/post", {
+        message: generatedPost,
+        image: selectedImage || undefined
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
         toast({
-          title: "Instagram",
-          description: "Post text copied to clipboard. To share on Instagram, paste this text with the downloaded image."
+          title: "Success",
+          description: "Posted directly to Facebook!",
         });
-        
-        // If there's an image, download it for the user
-        if (selectedImage) {
-          const link = document.createElement('a');
-          link.href = selectedImage;
-          link.download = 'instagram-post-image.jpg';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          toast({
-            title: "Image Downloaded",
-            description: "Use this image when creating your Instagram post."
-          });
-        } else {
-          toast({
-            title: "Tip",
-            description: "Instagram posts perform better with images. Consider adding an image next time."
-          });
-        }
-      })
-      .catch(err => {
-        console.error("Failed to copy text:", err);
+      } else {
         toast({
           title: "Error",
-          description: "Could not copy post text to clipboard. Please try again.",
-          variant: "destructive"
+          description: result.error || "Failed to post to Facebook",
+          variant: "destructive",
         });
+      }
+    } catch (error: any) { // Explicitly type error as any
+      console.error("Error posting to Facebook:", error);
+      toast({
+        title: "Error",
+        description: "Failed to post to Facebook: " + (error?.message || "Unknown error"),
+        variant: "destructive",
       });
+    }
+  };
+
+  const handleShareToInstagram = async () => {
+    if (!generatedPost) return;
+    
+    if (!selectedImage) {
+      toast({
+        title: "Image Required",
+        description: "Instagram posting requires an image. Please add an image to your post.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      toast({
+        title: "Posting",
+        description: "Posting to Instagram, please wait...",
+      });
+      
+      // Call our backend to post directly to Instagram
+      const response = await apiRequest("POST", "/api/instagram/post", {
+        message: generatedPost,
+        image: selectedImage
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Posted directly to Instagram!",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to post to Instagram",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error posting to Instagram:", error);
+      toast({
+        title: "Error",
+        description: "Failed to post to Instagram: " + (error?.message || "Unknown error"),
+        variant: "destructive",
+      });
+    }
   };
 
   return (
