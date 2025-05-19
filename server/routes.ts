@@ -399,6 +399,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Refresh analytics data for a post from social media platforms
+  app.post("/api/posts/:id/refresh-analytics", async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid post ID"
+        });
+      }
+      
+      // Get the post first to retrieve platform IDs
+      const postResult = await getPost(id);
+      
+      if (!postResult.success || !postResult.post) {
+        return res.status(404).json({
+          success: false,
+          error: "Post not found"
+        });
+      }
+      
+      // Fetch analytics from platforms
+      const analyticsResult = await fetchCombinedPostAnalytics(postResult.post);
+      
+      if (!analyticsResult.success) {
+        return res.status(500).json({
+          success: false,
+          error: analyticsResult.error || "Error fetching analytics from platforms"
+        });
+      }
+      
+      // Update the post with the new analytics data
+      const updateData = {
+        impressions: analyticsResult.analytics.impressions,
+        likes: analyticsResult.analytics.likes,
+        comments: analyticsResult.analytics.comments,
+        shares: analyticsResult.analytics.shares,
+        engagement: analyticsResult.analytics.engagement,
+        lastAnalyticsFetch: new Date()
+      };
+      
+      const updateResult = await updatePost(id, updateData);
+      
+      return res.json({
+        success: true,
+        post: updateResult.post,
+        analytics: analyticsResult.analytics
+      });
+    } catch (error: any) {
+      console.error("Error refreshing post analytics:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Error refreshing post analytics"
+      });
+    }
+  });
+  
   const httpServer = createServer(app);
 
   return httpServer;

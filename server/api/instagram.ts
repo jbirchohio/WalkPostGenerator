@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
-import { FacebookPostRequest } from '@shared/schema';
+import { FacebookPostRequest, SocialMediaResponse } from '@shared/schema';
 import { uploadToCloudinary } from './cloudinary';
 
 
@@ -16,7 +16,7 @@ const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
  * 1. Upload the image to get a container ID
  * 2. Publish the container with the caption
  */
-export async function postToInstagram(postData: FacebookPostRequest): Promise<{ success: boolean; id?: string; error?: string }> {
+export async function postToInstagram(postData: FacebookPostRequest): Promise<SocialMediaResponse> {
   try {
     if (!INSTAGRAM_BUSINESS_ACCOUNT_ID || !FACEBOOK_ACCESS_TOKEN) {
       throw new Error('Instagram credentials not configured');
@@ -126,7 +126,7 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
  * Publishes the media container to Instagram
  * This is the second step in the Instagram posting process
  */
-async function publishMedia(containerId: string): Promise<{ success: boolean; id?: string; error?: string }> {
+async function publishMedia(containerId: string): Promise<SocialMediaResponse> {
   try {
     const publishUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media_publish`;
     

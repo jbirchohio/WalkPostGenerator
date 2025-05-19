@@ -158,7 +158,8 @@ async function postWithImage(postData: FacebookPostRequest): Promise<SocialMedia
     
     return {
       success: true,
-      id: data.id
+      id: data.id,
+      platform: 'facebook'
     };
   } catch (error: any) {
     console.error('Error posting image to Facebook:', error);
