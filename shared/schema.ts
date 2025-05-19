@@ -96,6 +96,16 @@ export const facebookPostSchema = z.object({
 
 export type FacebookPostRequest = z.infer<typeof facebookPostSchema>;
 
+// Facebook/Instagram API response types
+export const socialMediaResponseSchema = z.object({
+  success: z.boolean(),
+  id: z.string().optional(),
+  error: z.string().optional(),
+  platform: z.enum(['facebook', 'instagram']).optional(),
+});
+
+export type SocialMediaResponse = z.infer<typeof socialMediaResponseSchema>;
+
 // Schema for saving posts to history
 export const savePostSchema = z.object({
   content: z.string(),

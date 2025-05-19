@@ -109,7 +109,7 @@ export async function fetchCombinedPostAnalytics(post: Post) {
     };
 
     // Fetch Facebook analytics if we have a Facebook post ID
-    if (post.facebookPostId) {
+    if (post.publishedTo && post.publishedTo.includes('facebook') && post.facebookPostId) {
       const fbAnalytics = await fetchFacebookPostAnalytics(post.facebookPostId);
       if (fbAnalytics.success && fbAnalytics.metrics) {
         analytics.platforms.facebook = fbAnalytics.metrics;
@@ -121,7 +121,7 @@ export async function fetchCombinedPostAnalytics(post: Post) {
     }
 
     // Fetch Instagram analytics if we have an Instagram post ID
-    if (post.instagramPostId) {
+    if (post.publishedTo && post.publishedTo.includes('instagram') && post.instagramPostId) {
       const igAnalytics = await fetchInstagramPostAnalytics(post.instagramPostId);
       if (igAnalytics.success && igAnalytics.metrics) {
         analytics.platforms.instagram = igAnalytics.metrics;

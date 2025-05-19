@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
-import { FacebookPostRequest } from '@shared/schema';
+import { FacebookPostRequest, SocialMediaResponse } from '@shared/schema';
 
 // Facebook Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
@@ -14,7 +14,7 @@ const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
  * Posts a message directly to the Facebook page using the Graph API
  * Requires a page access token with publish_pages permission
  */
-export async function postToFacebook(postData: FacebookPostRequest): Promise<{ success: boolean; id?: string; error?: string }> {
+export async function postToFacebook(postData: FacebookPostRequest): Promise<SocialMediaResponse> {
   try {
     if (!FACEBOOK_PAGE_ID || !FACEBOOK_ACCESS_TOKEN) {
       throw new Error('Facebook credentials not configured');
@@ -82,7 +82,7 @@ export async function postToFacebook(postData: FacebookPostRequest): Promise<{ s
  * Posts an image with a message to Facebook
  * This handles saving the image locally and then uploading it to Facebook
  */
-async function postWithImage(postData: FacebookPostRequest): Promise<{ success: boolean; id?: string; error?: string }> {
+async function postWithImage(postData: FacebookPostRequest): Promise<SocialMediaResponse> {
   try {
     if (!FACEBOOK_PAGE_ID || !FACEBOOK_ACCESS_TOKEN) {
       throw new Error('Facebook credentials not configured');
