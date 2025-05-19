@@ -421,71 +421,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errors = [];
       
       // Refresh analytics for each post
-      for (const post of postsResult.posts) {
-        try {
-          // Fetch analytics from platforms
-          const analyticsResult = await fetchCombinedPostAnalytics(post);
-          
-          if (analyticsResult.success && analyticsResult.analytics) {
-            // Update the post with the new analytics data
-            const updateData = {
-              impressions: analyticsResult.analytics.impressions || 0,
-              likes: analyticsResult.analytics.likes || 0,
-              comments: analyticsResult.analytics.comments || 0,
-              shares: analyticsResult.analytics.shares || 0,
-              clicks: analyticsResult.analytics.clicks || 0,
-              engagement: analyticsResult.analytics.engagement || 0,
-              lastAnalyticsFetch: new Date()
-            };
+      if (postsResult.posts && postsResult.posts.length > 0) {
+        for (const post of postsResult.posts) {
+          try {
+            // Fetch analytics from platforms
+            const analyticsResult = await fetchCombinedPostAnalytics(post);
             
-            // Save historical analytics data for each platform
-            if (analyticsResult.analytics.platforms) {
-              const platforms = analyticsResult.analytics.platforms;
+            if (analyticsResult.success && analyticsResult.analytics) {
+              // Update the post with the new analytics data
+              const updateData = {
+                impressions: analyticsResult.analytics.impressions || 0,
+                likes: analyticsResult.analytics.likes || 0,
+                comments: analyticsResult.analytics.comments || 0,
+                shares: analyticsResult.analytics.shares || 0,
+                clicks: analyticsResult.analytics.clicks || 0,
+                engagement: analyticsResult.analytics.engagement || 0,
+                lastAnalyticsFetch: new Date()
+              };
               
-              // Save Facebook analytics history if available
-              if (platforms.facebook && post.publishedTo?.includes('facebook')) {
-                const fbData = platforms.facebook;
-                await savePostAnalytics({
-                  postId: post.id,
-                  platform: 'facebook',
-                  impressions: fbData.impressions || 0,
-                  likes: fbData.likes || 0,
-                  comments: fbData.comments || 0,
-                  shares: fbData.shares || 0,
-                  clicks: fbData.clicks || 0,
-                  engagementRate: ((fbData.engagement || 0) / (fbData.impressions || 1) * 100).toFixed(2),
-                  metadata: fbData
-                });
+              // Save historical analytics data for each platform
+              if (analyticsResult.analytics.platforms) {
+                const platforms = analyticsResult.analytics.platforms;
+                
+                // Save Facebook analytics history if available
+                if (platforms.facebook && post.publishedTo?.includes('facebook')) {
+                  const fbData = platforms.facebook;
+                  await savePostAnalytics({
+                    postId: post.id,
+                    platform: 'facebook',
+                    impressions: fbData.impressions || 0,
+                    likes: fbData.likes || 0,
+                    comments: fbData.comments || 0,
+                    shares: fbData.shares || 0,
+                    clicks: fbData.clicks || 0,
+                    engagementRate: ((fbData.engagement || 0) / (fbData.impressions || 1) * 100).toFixed(2),
+                    metadata: fbData
+                  });
+                }
+                
+                // Save Instagram analytics history if available
+                if (platforms.instagram && post.publishedTo?.includes('instagram')) {
+                  const igData = platforms.instagram;
+                  await savePostAnalytics({
+                    postId: post.id,
+                    platform: 'instagram',
+                    impressions: igData.impressions || 0,
+                    likes: igData.likes || 0,
+                    comments: igData.comments || 0,
+                    shares: igData.shares || 0,
+                    clicks: igData.clicks || 0,
+                    engagementRate: ((igData.engagement || 0) / (igData.impressions || 1) * 100).toFixed(2),
+                    metadata: igData
+                  });
+                }
               }
               
-              // Save Instagram analytics history if available
-              if (platforms.instagram && post.publishedTo?.includes('instagram')) {
-                const igData = platforms.instagram;
-                await savePostAnalytics({
-                  postId: post.id,
-                  platform: 'instagram',
-                  impressions: igData.impressions || 0,
-                  likes: igData.likes || 0,
-                  comments: igData.comments || 0,
-                  shares: igData.shares || 0,
-                  clicks: igData.clicks || 0,
-                  engagementRate: ((igData.engagement || 0) / (igData.impressions || 1) * 100).toFixed(2),
-                  metadata: igData
-                });
+              const updateResult = await updatePost(post.id, updateData);
+              
+              if (updateResult.success) {
+                refreshedPosts.push(updateResult.post);
               }
             }
-            
-            const updateResult = await updatePost(post.id, updateData);
-            
-            if (updateResult.success) {
-              refreshedPosts.push(updateResult.post);
-            }
+          } catch (postError: any) {
+            errors.push({
+              postId: post.id,
+              error: postError.message || `Failed to refresh post ${post.id}`
+            });
           }
-        } catch (postError: any) {
-          errors.push({
-            postId: post.id,
-            error: postError.message || `Failed to refresh post ${post.id}`
-          });
         }
       }
       
