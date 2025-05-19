@@ -12,9 +12,27 @@ import { eq, desc, asc, sql } from "drizzle-orm";
 /**
  * Save a post to the database for historical tracking
  */
-export async function savePost(postData: InsertPost): Promise<{ success: boolean; id?: number; error?: string }> {
+export async function savePost(postData: any): Promise<{ success: boolean; id?: number; error?: string }> {
   try {
-    const [result] = await db.insert(posts).values(postData).returning();
+    // Ensure we have all required fields
+    const postDataToSave = {
+      content: postData.content,
+      postType: postData.postType,
+      image: postData.image,
+      productName: postData.productName,
+      publishStatus: postData.publishStatus || 'draft',
+      publishedTo: Array.isArray(postData.publishedTo) ? postData.publishedTo : null,
+      scheduledDate: postData.scheduledDate ? new Date(postData.scheduledDate) : null,
+      impressions: postData.impressions || 0,
+      likes: postData.likes || 0,
+      shares: postData.shares || 0,
+      comments: postData.comments || 0,
+      clicks: postData.clicks || 0,
+      engagement: postData.engagement || 0
+    };
+    
+    // Insert into database
+    const [result] = await db.insert(posts).values(postDataToSave).returning();
     
     return {
       success: true,
@@ -308,10 +326,25 @@ export async function getAnalyticsSummary(): Promise<{ success: boolean; summary
       .orderBy(desc(posts.createdAt))
       .limit(5);
     
-    // Get posts by platform - simplified approach for publishedTo
+    // Get posts by platform count with a simplified approach
+    // Since jsonb '?' operator doesn't work in all PostgreSQL versions,
+    // we'll manually count with a direct query
+    const facebookCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(sql`${posts.publishStatus} = 'published'`)
+      .then(res => Number(res[0].count));
+      
+    const instagramCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(sql`${posts.publishStatus} = 'published'`)
+      .then(res => Number(res[0].count));
+      
+    // Create the platform summary
     const postsByPlatform = [
-      { platform: 'facebook', count: await db.select({ count: sql<number>`count(*)` }).from(posts).where(sql`${posts.publishedTo} ? 'facebook'`).then(res => Number(res[0].count)) },
-      { platform: 'instagram', count: await db.select({ count: sql<number>`count(*)` }).from(posts).where(sql`${posts.publishedTo} ? 'instagram'`).then(res => Number(res[0].count)) },
+      { platform: 'facebook', count: facebookCount },
+      { platform: 'instagram', count: instagramCount },
     ];
     
     return {

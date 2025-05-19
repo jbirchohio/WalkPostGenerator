@@ -134,27 +134,45 @@ export default function PostGenerator({
   const handleShareToFacebook = async () => {
     if (!generatedPost) return;
     
+    setIsPosting(true);
+    
     try {
-      toast({
-        title: "Facebook Integration",
-        description: "In a production environment, this would post to your Facebook page."
+      // Prepare the post payload with all necessary data
+      const payload = {
+        message: generatedPost,
+        image: selectedImage,
+        postType: currentDraft?.postType || form.getValues("postType"),
+        productName: currentDraft?.product || form.getValues("productName")
+      };
+      
+      // Send the request to the Facebook posting API
+      const response = await fetch('/api/facebook/post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
       
-      // Simulate successful post after a delay
-      setTimeout(() => {
-        toast({
-          title: "Success",
-          description: "Your content is ready for Facebook. In a production environment, this would be posted to your page."
-        });
-      }, 1500);
+      const result = await response.json();
       
+      if (result.success) {
+        toast({
+          title: "Posted to Facebook",
+          description: "Your post has been successfully shared to your Facebook page."
+        });
+      } else {
+        throw new Error(result.error || result.message || "Error posting to Facebook");
+      }
     } catch (error: any) {
       console.error("Error with Facebook share:", error);
       toast({
         title: "Error",
-        description: "Something went wrong preparing your Facebook post",
+        description: error.message || "Something went wrong posting to Facebook",
         variant: "destructive",
       });
+    } finally {
+      setIsPosting(false);
     }
   };
 

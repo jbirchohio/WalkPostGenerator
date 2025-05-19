@@ -98,6 +98,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Post to Facebook
       const fbResponse = await postToFacebook(postData);
       
+      // If post was successful, save to history
+      if (fbResponse.success) {
+        try {
+          await savePost({
+            content: postData.message,
+            image: postData.image || null,
+            postType: req.body.postType || "general",
+            productName: req.body.productName || null,
+            publishStatus: "published",
+            publishedTo: ["facebook"]
+          });
+          console.log("Post saved to history after Facebook posting");
+        } catch (error) {
+          console.warn("Failed to save post to history after Facebook posting:", error);
+          // Continue anyway since the post was successful
+        }
+      }
+      
       // Return the result
       return res.json(fbResponse);
       
