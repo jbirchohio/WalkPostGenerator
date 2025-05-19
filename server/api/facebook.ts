@@ -171,57 +171,66 @@ async function saveBase64ImageLocally(base64Image: string): Promise<string> {
 }
 
 /**
- * Uploads an image to Facebook using the cURL approach with node
+ * Uploads an image to Facebook using the Fetch API approach
  */
 async function uploadImageToFacebook(
   url: string,
-  formDataString: string,
-  imagePath: string
+  message: string,
+  base64Image: string
 ): Promise<{ id?: string; error?: string }> {
-  const curl = `curl -X POST "${url}" \
-    -F "access_token=${FACEBOOK_ACCESS_TOKEN}" \
-    -F "message=${encodeURIComponent(formDataString)}" \
-    -F "source=@${imagePath}"`;
+  try {
+    console.log("Uploading image to Facebook using fetch API");
     
-  console.log("Executing curl command to upload image to Facebook");
-  
-  // Since we can't directly use FormData with node-fetch for files, use the HTTP API
-  // to create a multipart form upload
-  return new Promise((resolve) => {
-    const command = `curl -X POST "${url}" -F "source=@${imagePath}" -F "${formDataString}"`;
+    // Extract the base64 data if it's a data URL
+    let imageData = base64Image;
+    if (base64Image.includes('base64,')) {
+      imageData = base64Image.split('base64,')[1];
+    }
     
-    // Using node's child_process to execute the curl command
-    const { exec } = require('child_process');
-    exec(command, (error: any, stdout: string, stderr: string) => {
-      if (error) {
-        console.error(`Error executing curl: ${error.message}`);
-        return resolve({ error: `Failed to upload: ${error.message}` });
-      }
-      
-      if (stderr) {
-        console.error(`Curl stderr: ${stderr}`);
-        return resolve({ error: `Failed to upload: ${stderr}` });
-      }
-      
-      try {
-        const response = JSON.parse(stdout);
-        if (response.id) {
-          return resolve({ id: response.id });
-        } else if (response.error) {
-          // Provide more specific error messages for common issues
-          if (response.error.code === 200 && response.error.message.includes('permission')) {
-            return resolve({ 
-              error: "Facebook permission error: Your access token needs the 'pages_read_engagement' and 'pages_manage_posts' permissions." 
-            });
-          }
-          return resolve({ error: response.error.message || 'Unknown error' });
-        }
-        
-        return resolve({ error: 'No ID returned from Facebook' });
-      } catch (parseError: any) { // Fix type error
-        console.error('Failed to parse Facebook response:', parseError);
-        return resolve({ error: `Failed to parse response: ${parseError.message || 'Unknown parsing error'}` });
-      }
+    // Convert base64 to buffer
+    const imageBuffer = Buffer.from(imageData, 'base64');
+    
+    // Create URL for posting photos to Facebook
+    const fbUrl = `https://graph.facebook.com/v18.0/${FACEBOOK_PAGE_ID}/photos`;
+    
+    // Create form data
+    const form = new FormData();
+    form.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    form.append('message', message);
+    
+    // Add the image as a blob with proper MIME type
+    const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
+    form.append('source', imageBlob, 'image.jpg');
+    
+    // Post to Facebook
+    const response = await fetch(fbUrl, {
+      method: 'POST',
+      body: form
     });
-  });
+    
+    const data = await response.json() as any;
+    
+    if (data.error) {
+      console.error('Facebook API error:', data.error);
+      
+      if (data.error.code === 200 && data.error.message.includes('permission')) {
+        return {
+          error: "Facebook permission error: Your access token needs the 'pages_read_engagement' and 'pages_manage_posts' permissions."
+        };
+      }
+      
+      return {
+        error: data.error.message || 'Unknown Facebook API error'
+      };
+    }
+    
+    if (data.id) {
+      return { id: data.id };
+    }
+    
+    return { error: 'No ID returned from Facebook' };
+  } catch (error: any) {
+    console.error('Error uploading to Facebook:', error);
+    return { error: `Failed to upload: ${error.message || 'Unknown error'}` };
+  }
 }
