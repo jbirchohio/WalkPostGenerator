@@ -69,7 +69,7 @@ export async function fetchInstagramPostAnalytics(postId: string) {
     
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${mediaId}/insights`;
     const params = new URLSearchParams({
-      metric: 'impressions,reach,saved,likes,comments,shares',
+      metric: 'impressions,reach,saved',
       access_token: FACEBOOK_ACCESS_TOKEN
     });
 
