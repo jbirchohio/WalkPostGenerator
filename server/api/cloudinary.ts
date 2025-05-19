@@ -1,15 +1,11 @@
 import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary with direct API keys instead of URL
-cloudinary.config({
-  cloud_name: 'ddd4kwqtr',
-  api_key: '869334455434463',
-  api_secret: '-gmWHYX66lspJrQYF9XDPKvYd2A',
-  secure: true // Force HTTPS
-});
+// Cloudinary is already configured through the CLOUDINARY_URL environment variable
+// The URL format is: cloudinary://api_key:api_secret@cloud_name
+// This automatically configures cloud_name, api_key, and api_secret
 
 // Log successful configuration
-console.log("Cloudinary configured successfully with cloud name: ddd4kwqtr");
+console.log("Cloudinary using configuration from environment variable");
 
 /**
  * Upload an image (base64 or URL) to Cloudinary and get a secure HTTPS URL
