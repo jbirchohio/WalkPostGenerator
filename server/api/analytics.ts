@@ -19,17 +19,60 @@ export async function fetchFacebookPostAnalytics(postId: string) {
 
     console.log(`Fetching Facebook analytics for post ID: ${postId}`);
     
+    // Use recommended metrics from Facebook Insights API
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${postId}/insights`;
     const params = new URLSearchParams({
-      metric: 'post_impressions,post_reactions_by_type_total,post_comments,post_shares',
+      metric: 'post_impressions,post_impressions_unique,post_engaged_users,post_clicks,post_reactions_by_type_total,post_comments,post_shares',
       access_token: FACEBOOK_ACCESS_TOKEN
     });
 
+    console.log(`Requesting Facebook metrics: ${apiUrl}?metric=[HIDDEN]&access_token=[HIDDEN]`);
     const response = await fetch(`${apiUrl}?${params.toString()}`);
     const data = await response.json() as any;
 
     if (data.error) {
       console.error('Error fetching Facebook post analytics:', data.error);
+      
+      // If we can't get insights, try getting basic engagement data directly from the post
+      try {
+        console.log(`Trying to get basic post data instead for: ${postId}`);
+        const postApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${postId}`;
+        const postParams = new URLSearchParams({
+          fields: 'likes.summary(true),comments.summary(true),shares',
+          access_token: FACEBOOK_ACCESS_TOKEN
+        });
+        
+        const postResponse = await fetch(`${postApiUrl}?${postParams.toString()}`);
+        const postData = await postResponse.json() as any;
+        
+        if (!postData.error) {
+          console.log('Got basic post engagement data:', postData);
+          
+          // Create simple metrics from the basic post data
+          const metrics = {
+            likes: postData.likes?.summary?.total_count || 0,
+            comments: postData.comments?.summary?.total_count || 0,
+            shares: postData.shares?.count || 0,
+            impressions: 0,
+            reach: 0,
+            engagement: 0,
+            clicks: 0
+          };
+          
+          // Estimate total engagement
+          metrics.engagement = metrics.likes + metrics.comments + metrics.shares;
+          
+          return {
+            success: true,
+            metrics
+          };
+        } else {
+          console.error('Error fetching basic post data:', postData.error);
+        }
+      } catch (postError) {
+        console.error('Error in fallback post data request:', postError);
+      }
+      
       return {
         success: false,
         error: data.error.message || 'Error fetching Facebook analytics'
@@ -262,14 +305,19 @@ export async function fetchCombinedPostAnalytics(post: Post) {
 function processMetrics(metricsData: any[]) {
   const metrics: any = {
     impressions: 0,
+    reach: 0,
     likes: 0,
     comments: 0,
-    shares: 0
+    shares: 0,
+    clicks: 0,
+    engagement: 0
   };
 
   if (!metricsData || !Array.isArray(metricsData)) {
     return metrics;
   }
+
+  console.log('Processing Facebook metrics:', metricsData);
 
   // Process each metric type
   metricsData.forEach(metric => {
@@ -277,11 +325,24 @@ function processMetrics(metricsData: any[]) {
       case 'post_impressions':
         metrics.impressions = metric.values[0]?.value || 0;
         break;
+      case 'post_impressions_unique':
+        metrics.reach = metric.values[0]?.value || 0;
+        break;
+      case 'post_engaged_users':
+        metrics.engagement = metric.values[0]?.value || 0;
+        break;
+      case 'post_clicks':
+        metrics.clicks = metric.values[0]?.value || 0;
+        break;
       case 'post_reactions_by_type_total':
         // Sum up all reaction types or get the 'like' count specifically
         const reactionValues = metric.values[0]?.value;
         if (reactionValues) {
-          metrics.likes = reactionValues.like || 0;
+          // Count all reaction types
+          metrics.likes = 0;
+          for (const reactionType in reactionValues) {
+            metrics.likes += reactionValues[reactionType] || 0;
+          }
         }
         break;
       case 'post_comments':
@@ -292,6 +353,11 @@ function processMetrics(metricsData: any[]) {
         break;
     }
   });
+
+  // If engagement wasn't directly provided, calculate it
+  if (metrics.engagement === 0) {
+    metrics.engagement = metrics.likes + metrics.comments + metrics.shares;
+  }
 
   return metrics;
 }
