@@ -439,6 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         likes: analyticsResult.analytics?.likes || 0,
         comments: analyticsResult.analytics?.comments || 0,
         shares: analyticsResult.analytics?.shares || 0,
+        clicks: analyticsResult.analytics?.clicks || 0,
         engagement: analyticsResult.analytics?.engagement || 0,
         lastAnalyticsFetch: new Date()
       };
