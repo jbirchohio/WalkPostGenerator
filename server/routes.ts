@@ -105,7 +105,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If post was successful, save to history
       if (fbResponse.success && fbResponse.id) {
         try {
-          await savePost({
+          console.log("Saving Facebook post with ID:", fbResponse.id);
+          const saveResult = await savePost({
             content: postData.message,
             image: postData.image || null,
             postType: req.body.postType || "general",
@@ -114,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             publishedTo: ["facebook"],
             facebookPostId: fbResponse.id
           });
-          console.log("Post saved to history after Facebook posting");
+          console.log("Post saved to history after Facebook posting with ID:", saveResult.id);
         } catch (error) {
           console.warn("Failed to save post to history after Facebook posting:", error);
           // Continue anyway since the post was successful
@@ -195,7 +196,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If post was successful, save to history
       if (igResponse.success && igResponse.id) {
         try {
-          await savePost({
+          console.log("Saving Instagram post with ID:", igResponse.id);
+          const saveResult = await savePost({
             content: postData.message,
             image: postData.image,
             postType: req.body.postType || "general",
@@ -204,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             publishedTo: ["instagram"],
             instagramPostId: igResponse.id
           });
-          console.log("Post saved to history after Instagram posting");
+          console.log("Post saved to history after Instagram posting with ID:", saveResult.id);
         } catch (error) {
           console.warn("Failed to save post to history after Instagram posting:", error);
           // Continue anyway since the post was successful

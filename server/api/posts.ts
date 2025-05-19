@@ -28,6 +28,9 @@ export async function savePost(postData: any): Promise<{ success: boolean; id?: 
       shares: postData.shares || 0,
       comments: postData.comments || 0,
       clicks: postData.clicks || 0,
+      // Add platform-specific IDs for analytics tracking
+      facebookPostId: postData.facebookPostId || null,
+      instagramPostId: postData.instagramPostId || null,
       engagement: postData.engagement || 0
     };
     
