@@ -109,24 +109,70 @@ async function createMediaContainer(imagePath: string, caption: string): Promise
     // First, create a container for the media
     const mediaUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
     
-    // Read the image file to base64
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString('base64');
+    // We need a publicly accessible URL for Instagram
+    let imageUrl;
     
-    // For Instagram, we need to create a FormData object to upload the image
-    const formData = new URLSearchParams();
-    formData.append('caption', caption);
-    formData.append('access_token', FACEBOOK_ACCESS_TOKEN!);
+    // If this is a local file path, upload it to get a public URL
+    if (imagePath.startsWith('data:')) {
+      // Upload the image to our server to get a public URL
+      const uploadResponse = await fetch(`http://localhost:5000/api/images/upload-base64`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image: imagePath })
+      });
+      
+      const uploadResult = await uploadResponse.json();
+      
+      if (!uploadResult.success || !uploadResult.url) {
+        console.error('Failed to upload image for Instagram:', uploadResult.message || 'Unknown error');
+        return null;
+      }
+      
+      imageUrl = uploadResult.url;
+      console.log('Image uploaded to public URL for Instagram:', imageUrl);
+    } else if (fs.existsSync(imagePath)) {
+      // It's a local file path, read and upload it
+      const imageBuffer = fs.readFileSync(imagePath);
+      const base64Image = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+      
+      // Upload the image to our server to get a public URL
+      const uploadResponse = await fetch(`http://localhost:5000/api/images/upload-base64`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image: base64Image })
+      });
+      
+      const uploadResult = await uploadResponse.json();
+      
+      if (!uploadResult.success || !uploadResult.url) {
+        console.error('Failed to upload image for Instagram:', uploadResult.message || 'Unknown error');
+        return null;
+      }
+      
+      imageUrl = uploadResult.url;
+      console.log('Image uploaded to public URL for Instagram:', imageUrl);
+    } else {
+      // It's already a URL, use it directly
+      imageUrl = imagePath;
+    }
     
-    // Instagram allows image_url or upload via form - we'll use image_url with a data URL
-    // Note: In a production application, you would upload to a CDN and provide that URL
-    formData.append('image_url', `data:image/jpeg;base64,${base64Image}`);
+    // For Instagram, we need to create parameters with the image URL
+    const params = new URLSearchParams();
+    params.append('caption', caption);
+    params.append('access_token', FACEBOOK_ACCESS_TOKEN!);
     
-    console.log("Attempting to create Instagram media container...");
+    // Important: Instagram requires a publicly accessible URL for the image
+    params.append('image_url', imageUrl);
+    
+    console.log("Attempting to create Instagram media container with URL:", imageUrl);
     
     const response = await fetch(mediaUrl, {
       method: 'POST',
-      body: formData
+      body: params
     });
     
     const data = await response.json() as any;

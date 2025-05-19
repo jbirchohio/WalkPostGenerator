@@ -87,40 +87,69 @@ async function postWithImage(postData: FacebookPostRequest): Promise<{ success: 
       throw new Error('Facebook credentials not configured');
     }
 
-    // Extract base64 data and save image locally
-    const imagePath = await saveBase64ImageLocally(postData.image!);
+    // We need a publicly accessible URL for the image
+    let imageUrl;
     
-    // Upload the image to Facebook using the Graph API
-    const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${FACEBOOK_PAGE_ID}/photos`;
-    
-    const formData = new URLSearchParams();
-    formData.append('message', postData.message);
-    formData.append('access_token', FACEBOOK_ACCESS_TOKEN);
-    formData.append('published', 'true');
-    
-    // Create a FormData object and append the image file
-    const imageStream = fs.createReadStream(imagePath);
-    
-    // Use our custom upload function since FormData is not directly supported
-    const result = await uploadImageToFacebook(apiUrl, formData.toString(), imagePath);
-    
-    // Clean up the temporary file
-    try {
-      fs.unlinkSync(imagePath);
-    } catch (err) {
-      console.warn('Failed to delete temporary image file:', err);
+    // If we have a base64 image, convert it to a public URL via our upload endpoint
+    if (postData.image && postData.image.startsWith('data:')) {
+      // First, upload the image to our server to get a public URL
+      const uploadResponse = await fetch(`http://localhost:5000/api/images/upload-base64`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image: postData.image })
+      });
+      
+      const uploadResult = await uploadResponse.json();
+      
+      if (!uploadResult.success || !uploadResult.url) {
+        throw new Error('Failed to upload image: ' + (uploadResult.message || 'Unknown error'));
+      }
+      
+      imageUrl = uploadResult.url;
+      console.log('Image uploaded to public URL:', imageUrl);
+    } else if (postData.image) {
+      // If it's already a URL, use it directly
+      imageUrl = postData.image;
+    } else {
+      throw new Error('No image provided for posting');
     }
     
-    if (result.error) {
+    // Post to Facebook with the public image URL
+    const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${FACEBOOK_PAGE_ID}/photos`;
+    
+    const params = new URLSearchParams();
+    params.append('message', postData.message);
+    params.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    params.append('url', imageUrl); // Use the public URL for the image
+    
+    // Post to Facebook API
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: params
+    });
+    
+    const data = await response.json() as any;
+    
+    if (data.error) {
+      console.error('Facebook API error:', data.error);
       return {
         success: false,
-        error: result.error
+        error: data.error.message || 'Unknown Facebook API error'
+      };
+    }
+    
+    if (!data.id) {
+      return {
+        success: false,
+        error: 'No ID returned from Facebook'
       };
     }
     
     return {
       success: true,
-      id: result.id
+      id: data.id
     };
   } catch (error: any) {
     console.error('Error posting image to Facebook:', error);
