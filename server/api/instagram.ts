@@ -31,10 +31,19 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
     console.log("Attempting to post to Instagram Business Account ID:", INSTAGRAM_BUSINESS_ACCOUNT_ID);
 
     // Extract base64 data and save image locally
-    const imagePath = await saveBase64ImageLocally(postData.image);
+    let imageUrl;
+    if (postData.image.startsWith('http')) {
+      // Already a URL, use it directly
+      imageUrl = postData.image;
+      console.log("Using existing image URL for Instagram:", imageUrl);
+    } else {
+      // Save base64 image and get a public URL
+      imageUrl = await saveBase64ImageLocally(postData.image);
+      console.log("Image saved and converted to URL for Instagram:", imageUrl);
+    }
     
     // Step 1: Create a container for the media
-    const containerId = await createMediaContainer(imagePath, postData.message);
+    const containerId = await createMediaContainer(imageUrl, postData.message);
     
     if (!containerId) {
       throw new Error('Failed to create Instagram media container');
@@ -64,39 +73,82 @@ export async function postToInstagram(postData: FacebookPostRequest): Promise<{ 
  * Saves a base64 image to a local file
  */
 async function saveBase64ImageLocally(base64Image: string): Promise<string> {
-  // Extract the base64 data
-  const matches = base64Image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-  
-  if (!matches || matches.length < 3) {
-    throw new Error('Invalid base64 image format');
+  try {
+    // Check if the image is already a URL (e.g., from a previous save operation)
+    if (base64Image.startsWith('http')) {
+      console.log("Image is already a URL:", base64Image);
+      return base64Image;
+    }
+    
+    // Extract the base64 data
+    const matches = base64Image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    
+    if (!matches || matches.length < 3) {
+      // Try a more lenient approach if standard format doesn't match
+      if (base64Image.includes('base64')) {
+        const parts = base64Image.split('base64,');
+        if (parts.length > 1) {
+          const buffer = Buffer.from(parts[1], 'base64');
+          const extension = 'jpg'; // Default to jpg
+          const filename = `instagram_upload_${Date.now().toString(16)}.${extension}`;
+          const filePath = path.join(process.cwd(), 'uploads', filename);
+          
+          // Make sure the uploads directory exists
+          const uploadsDir = path.join(process.cwd(), 'uploads');
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+          
+          // Write the file
+          fs.writeFileSync(filePath, buffer);
+          
+          // Create a public URL
+          const appUrl = process.env.APP_URL || 'http://localhost:5000';
+          const publicUrl = `${appUrl}/uploads/${filename}`;
+          console.log("Image saved for Instagram and accessible at:", publicUrl);
+          
+          return publicUrl;
+        }
+      }
+      
+      throw new Error('Invalid base64 image format');
+    }
+    
+    const imageType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    // Determine file extension
+    let extension = 'jpg';  // Default
+    if (imageType.includes('png')) {
+      extension = 'png';
+    } else if (imageType.includes('gif')) {
+      extension = 'gif';
+    }
+    
+    // Create a unique filename
+    const filename = `${Date.now().toString(16)}.${extension}`;
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    
+    // Make sure the uploads directory exists
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    
+    // Write the file
+    fs.writeFileSync(filePath, buffer);
+    
+    // Create a public URL
+    const appUrl = process.env.APP_URL || `http://localhost:5000`;
+    const publicUrl = `${appUrl}/uploads/${filename}`;
+    console.log("Image saved for Instagram and accessible at:", publicUrl);
+    
+    return publicUrl;
+  } catch (error) {
+    console.error("Error saving image for Instagram:", error);
+    throw error;
   }
-  
-  const imageType = matches[1];
-  const base64Data = matches[2];
-  const buffer = Buffer.from(base64Data, 'base64');
-  
-  // Determine file extension
-  let extension = 'jpg';  // Default
-  if (imageType.includes('png')) {
-    extension = 'png';
-  } else if (imageType.includes('gif')) {
-    extension = 'gif';
-  }
-  
-  // Create a unique filename
-  const filename = `instagram_upload_${Date.now()}.${extension}`;
-  const filePath = path.join(process.cwd(), 'uploads', filename);
-  
-  // Make sure the uploads directory exists
-  const uploadsDir = path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-  
-  // Write the file
-  fs.writeFileSync(filePath, buffer);
-  
-  return filePath;
 }
 
 /**

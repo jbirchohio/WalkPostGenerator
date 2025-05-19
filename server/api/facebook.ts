@@ -90,10 +90,27 @@ async function postWithImage(postData: FacebookPostRequest): Promise<{ success: 
     // We need a publicly accessible URL for the image
     let imageUrl;
     
-    // For testing purposes with Facebook, let's use a known good image URL
-    // This is a temporary solution until the proper image upload system is in place
-    imageUrl = "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80";
-    console.log('Using test image for Facebook:', imageUrl);
+    // Handle the image - if it's base64, save it locally and generate a URL
+    if (postData.image) {
+      if (postData.image.startsWith('data:')) {
+        // Save the image and get a URL
+        const imagePath = await saveBase64ImageLocally(postData.image);
+        
+        // Get host URL from request or environment
+        const appUrl = process.env.APP_URL || 'https://localhost:5000';
+        imageUrl = `${appUrl}/uploads/${path.basename(imagePath)}`;
+        console.log('Image saved and accessible at:', imageUrl);
+      } else if (postData.image.startsWith('http')) {
+        // Already a URL
+        imageUrl = postData.image;
+      } else {
+        throw new Error('Invalid image format');
+      }
+    } else {
+      // For testing with Facebook if no image is provided
+      imageUrl = "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80";
+    }
+    console.log('Using image for Facebook:', imageUrl);
     
     // Post to Facebook with the public image URL
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${FACEBOOK_PAGE_ID}/photos`;
