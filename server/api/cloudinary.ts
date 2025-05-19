@@ -1,5 +1,11 @@
 import { v2 as cloudinary } from 'cloudinary';
 
+// Make sure we initialize cloudinary with proper configuration
+// This will use the CLOUDINARY_URL environment variable
+cloudinary.config({
+  secure: true // Force HTTPS
+});
+
 // Configure cloudinary - this will use the CLOUDINARY_URL environment variable
 // Format: cloudinary://api_key:api_secret@cloud_name
 
