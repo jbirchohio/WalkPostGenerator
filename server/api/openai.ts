@@ -20,10 +20,9 @@ export async function generatePostWithOpenAI(data: PostGenerationRequest): Promi
     // Basic system and user messages
     const systemContent = "You are a social media manager for 'A Walk in the Park Cafe', a cozy cafe located at 1491 Aster Ave, Akron, OH 44301, next to a beautiful park. Your task is to create engaging, authentic content for Instagram and Facebook that highlights the cafe's products, ambiance, and connection to nature. Use emojis appropriately, include relevant hashtags, and make the content feel warm and inviting. Never include operating hours in your posts as they vary. Keep the location reference simple - just mention 'A Walk in the Park Cafe' or occasionally the full address (1491 Aster Ave, Akron, OH 44301) but don't invent other location details.";
     
-    let result;
-    
-    // For text-only requests
+    // Handle text-only requests
     if (!data.image) {
+      console.log("Generating text-only post with OpenAI");
       const textResponse = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
         messages: [
@@ -33,11 +32,54 @@ export async function generatePostWithOpenAI(data: PostGenerationRequest): Promi
         max_tokens: 500
       });
       
-      result = textResponse.choices[0].message.content;
-    } else {
-      // For requests with images
-      const base64Image = data.image.split(',')[1]; // Remove data URL prefix
+      return textResponse.choices[0].message.content || "Sorry, I couldn't generate a post at this time.";
+    } 
+    
+    // From here on, we're handling image requests
+    console.log("Processing image data for OpenAI Vision");
+    
+    // Handle different image data URL formats
+    let base64Image = '';
+    let contentType = 'image/jpeg';
+    
+    try {
+      if (data.image.includes('data:image/')) {
+        // Extract content type and base64 data from data URL
+        const matches = data.image.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches && matches.length >= 3) {
+          contentType = matches[1];
+          base64Image = matches[2];
+        } else {
+          // Fallback if regex match fails
+          base64Image = data.image.split(',')[1] || '';
+        }
+      } else {
+        // Handle case where data URL prefix might be missing
+        base64Image = data.image;
+      }
+      
+      // Ensure we have image data
+      if (!base64Image) {
+        throw new Error('Invalid image data provided');
+      }
+      
+      // Check if image data is too large (OpenAI has limits)
+      if (base64Image.length > 20 * 1024 * 1024) { // 20MB limit in bytes
+        console.log("Image too large, using text-only generation instead");
+        const fallbackResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: systemContent },
+            { role: "user", content: `${textPrompt} (Note: An image was provided but was too large to process)` }
+          ],
+          max_tokens: 500
+        });
+        return fallbackResponse.choices[0].message.content || "Sorry, I couldn't generate a post at this time.";
+      }
+      
       const imagePrompt = `${textPrompt}\n\nI've attached an image to use with this post. Include relevant aspects from this image in your social media post.`;
+      
+      console.log(`Sending image to OpenAI (content type: ${contentType}, data length: ${base64Image.length})`);
       
       // Create multimodal request
       const imageResponse = await openai.chat.completions.create({
@@ -50,7 +92,7 @@ export async function generatePostWithOpenAI(data: PostGenerationRequest): Promi
               { type: "text", text: imagePrompt },
               { 
                 type: "image_url", 
-                image_url: { url: `data:image/jpeg;base64,${base64Image}` } 
+                image_url: { url: `data:${contentType};base64,${base64Image}` } 
               }
             ]
           }
@@ -58,11 +100,21 @@ export async function generatePostWithOpenAI(data: PostGenerationRequest): Promi
         max_tokens: 500
       });
       
-      result = imageResponse.choices[0].message.content;
+      return imageResponse.choices[0].message.content || "Sorry, I couldn't generate a post at this time.";
+    } catch (error: any) {
+      console.error("Error with image processing in OpenAI:", error);
+      // Fall back to text-only if image processing fails
+      console.log("Falling back to text-only generation due to error:", error.message);
+      const fallbackResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemContent },
+          { role: "user", content: `${textPrompt} (Note: An image was provided but could not be processed)` }
+        ],
+        max_tokens: 500
+      });
+      return fallbackResponse.choices[0].message.content || "Sorry, I couldn't generate a post at this time.";
     }
-    
-    return result || "Sorry, I couldn't generate a post at this time.";
-    
   } catch (error: any) {
     console.error("Error calling OpenAI:", error);
     throw new Error(`Failed to generate post: ${error.message || 'Unknown error'}`);
