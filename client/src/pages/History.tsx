@@ -12,7 +12,20 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { ChevronLeft, ChevronRight, Eye, Edit, Trash2, Clock } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Clock, 
+  Facebook, 
+  Instagram, 
+  Heart, 
+  MessageSquare, 
+  Share2, 
+  BarChart2
+} from "lucide-react";
 import PostPreview from "@/components/PostPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -263,6 +276,33 @@ export default function History() {
                         {post.content.substring(0, 50)}...
                       </TableCell>
                       <TableCell>{post.productName || "N/A"}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          {post.publishedTo && post.publishedTo.map((platform, idx) => (
+                            <Badge key={idx} className={platform === 'facebook' ? "bg-blue-100 text-blue-800" : "bg-pink-100 text-pink-800"}>
+                              {platform === 'facebook' ? <Facebook className="w-3 h-3 mr-1" /> : <Instagram className="w-3 h-3 mr-1" />}
+                              {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                            </Badge>
+                          ))}
+                          {(!post.publishedTo || post.publishedTo.length === 0) && "Not published"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2 text-gray-600">
+                          <span className="flex items-center" title="Likes">
+                            <Heart className="w-3 h-3 mr-1 text-red-500" />
+                            {post.likes || 0}
+                          </span>
+                          <span className="flex items-center" title="Comments">
+                            <MessageSquare className="w-3 h-3 mr-1 text-blue-500" />
+                            {post.comments || 0}
+                          </span>
+                          <span className="flex items-center" title="Shares">
+                            <Share2 className="w-3 h-3 mr-1 text-green-500" />
+                            {post.shares || 0}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge
                           className={
