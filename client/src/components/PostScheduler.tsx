@@ -5,7 +5,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import {
   Popover,
@@ -15,7 +16,7 @@ import {
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { CalendarIcon, Clock } from "lucide-react";
+import { CalendarIcon, Clock, Facebook, Instagram } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface PostSchedulerProps {
@@ -58,7 +59,7 @@ export default function PostScheduler({ open, onClose, onSchedule }: PostSchedul
     
     toast({
       title: "Post Scheduled",
-      description: `Your post will be published on ${format(scheduledDate, "PPP")} at ${format(scheduledDate, "p")}`,
+      description: `Your post will be published to Facebook and Instagram on ${format(scheduledDate, "PPP")} at ${format(scheduledDate, "p")}`,
     });
   };
 
@@ -67,6 +68,13 @@ export default function PostScheduler({ open, onClose, onSchedule }: PostSchedul
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Schedule Post</DialogTitle>
+          <DialogDescription className="mt-2">
+            Your post will be published to both Facebook and Instagram at the scheduled time
+            <div className="flex items-center space-x-2 mt-1">
+              <Facebook className="h-4 w-4 text-blue-600" />
+              <Instagram className="h-4 w-4 text-pink-600" />
+            </div>
+          </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
