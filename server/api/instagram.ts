@@ -151,7 +151,8 @@ async function publishMedia(containerId: string): Promise<{ success: boolean; id
     
     return {
       success: true,
-      id: data.id
+      id: data.id,
+      platform: 'instagram'
     };
   } catch (error: any) {
     console.error('Error publishing to Instagram:', error);

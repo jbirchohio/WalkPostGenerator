@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fbResponse = await postToFacebook(postData);
       
       // If post was successful, save to history
-      if (fbResponse.success) {
+      if (fbResponse.success && fbResponse.id) {
         try {
           await savePost({
             content: postData.message,
@@ -111,7 +111,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             postType: req.body.postType || "general",
             productName: req.body.productName || null,
             publishStatus: "published",
-            publishedTo: ["facebook"]
+            publishedTo: ["facebook"],
+            facebookPostId: fbResponse.id
           });
           console.log("Post saved to history after Facebook posting");
         } catch (error) {
@@ -192,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const igResponse = await postToInstagram(postData);
       
       // If post was successful, save to history
-      if (igResponse.success) {
+      if (igResponse.success && igResponse.id) {
         try {
           await savePost({
             content: postData.message,
@@ -200,7 +201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             postType: req.body.postType || "general",
             productName: req.body.productName || null,
             publishStatus: "published",
-            publishedTo: ["instagram"]
+            publishedTo: ["instagram"],
+            instagramPostId: igResponse.id
           });
           console.log("Post saved to history after Instagram posting");
         } catch (error) {

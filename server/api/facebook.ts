@@ -67,6 +67,7 @@ export async function postToFacebook(postData: FacebookPostRequest): Promise<{ s
     return {
       success: true,
       id: data.id,
+      platform: 'facebook'
     };
   } catch (error: any) {
     console.error('Error posting to Facebook:', error);
