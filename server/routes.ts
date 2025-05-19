@@ -441,6 +441,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastAnalyticsFetch: new Date()
       };
       
+      // Log the post to check if we have platform IDs for debugging
+      console.log("Post being updated with analytics:", JSON.stringify(postResult.post, null, 2));
+      console.log("Platform IDs:", {
+        facebookId: postResult.post.facebookPostId,
+        instagramId: postResult.post.instagramPostId
+      });
+      
       const updateResult = await updatePost(id, updateData);
       
       return res.json({

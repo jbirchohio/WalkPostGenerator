@@ -48,6 +48,9 @@ interface Post {
   shares: number;
   comments: number;
   clicks: number;
+  facebookPostId?: string;
+  instagramPostId?: string;
+  lastAnalyticsFetch?: string;
 }
 
 export default function History() {
@@ -365,14 +368,16 @@ export default function History() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* Show analytics refresh button only for published posts */}
+                          {/* Show analytics refresh button only for published posts with platform IDs */}
                           {post.publishStatus === "published" && post.publishedTo && post.publishedTo.length > 0 && (
                             <Button
                               variant="ghost"
                               size="icon"
                               disabled={refreshingAnalytics === post.id}
                               onClick={() => handleRefreshAnalytics(post.id)}
-                              title="Refresh analytics from social media platforms"
+                              title={`Refresh analytics from social media platforms
+Facebook ID: ${post.facebookPostId || 'None'}
+Instagram ID: ${post.instagramPostId || 'None'}`}
                             >
                               <BarChart2 className={`h-4 w-4 ${refreshingAnalytics === post.id ? 'animate-spin' : ''}`} />
                             </Button>
