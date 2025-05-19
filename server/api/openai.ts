@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { PostGenerationRequest } from "@shared/schema";
+import sharp from "sharp";
 
 // Use the provided API credentials
 const openai = new OpenAI({ 
@@ -61,6 +62,30 @@ export async function generatePostWithOpenAI(data: PostGenerationRequest): Promi
       // Ensure we have image data
       if (!base64Image) {
         throw new Error('Invalid image data provided');
+      }
+      
+      // Compress the image using sharp if it's too large
+      if (base64Image.length > 1 * 1024 * 1024) { // If larger than ~1MB
+        console.log("Image is large, applying compression before sending to OpenAI");
+        try {
+          // Convert base64 to buffer
+          const imageBuffer = Buffer.from(base64Image, 'base64');
+          
+          // Compress and resize the image using sharp
+          const compressedImageBuffer = await sharp(imageBuffer)
+            .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 75, progressive: true })
+            .toBuffer();
+          
+          // Convert back to base64
+          base64Image = compressedImageBuffer.toString('base64');
+          contentType = 'image/jpeg'; // Force JPEG format after compression
+          
+          console.log(`Image compressed: Original size → Compressed size: ${(imageBuffer.length/1024/1024).toFixed(2)}MB → ${(compressedImageBuffer.length/1024/1024).toFixed(2)}MB`);
+        } catch (compressionError) {
+          console.error("Error compressing image:", compressionError);
+          // Continue with original image if compression fails
+        }
       }
       
       // Check if image data is too large (OpenAI has limits)

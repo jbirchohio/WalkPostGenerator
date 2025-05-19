@@ -1,0 +1,86 @@
+Perfect — here's a single Express route that:
+
+Accepts an uploaded image (multipart/form-data)
+
+Compresses it using sharp
+
+Uploads it to OpenAI's Assistants API
+
+Returns the file_id from OpenAI ✅
+
+🔧 Full Express Route: Upload + Compress + Send to OpenAI
+js
+Copy
+Edit
+// server.js or routes/upload.js
+const express = require('express');
+const multer = require('multer');
+const sharp = require('sharp');
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const FormData = require('form-data');
+
+const router = express.Router();
+const upload = multer({ dest: 'uploads/' });
+
+router.post('/upload-to-openai', upload.single('image'), async (req, res) => {
+  try {
+    const inputPath = req.file.path;
+    const compressedPath = `compressed/${req.file.filename}-compressed.jpg`;
+
+    // Step 1: Compress the image
+    await sharp(inputPath)
+      .resize({ width: 1024 }) // Optional: resize
+      .jpeg({ quality: 70 })
+      .toFile(compressedPath);
+
+    // Step 2: Upload to OpenAI
+    const form = new FormData();
+    form.append('file', fs.createReadStream(compressedPath));
+    form.append('purpose', 'assistants');
+
+    const response = await axios.post('https://api.openai.com/v1/files', form, {
+      headers: {
+        ...form.getHeaders(),
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+    });
+
+    // Step 3: Clean up local files
+    fs.unlinkSync(inputPath);
+    fs.unlinkSync(compressedPath);
+
+    // Step 4: Return OpenAI file ID
+    res.json({ file_id: response.data.id });
+
+  } catch (err) {
+    console.error('Upload failed:', err.response?.data || err.message);
+    res.status(500).send('Upload to OpenAI failed.');
+  }
+});
+
+module.exports = router;
+🧠 Setup Tips
+In your main server.js:
+
+js
+Copy
+Edit
+const uploadRoute = require('./routes/upload'); // adjust path as needed
+app.use('/api', uploadRoute);
+Be sure to:
+
+Create the compressed/ folder
+
+Set your OPENAI_API_KEY in .env
+
+📦 Upload Form Example (frontend or Postman)
+Send a POST request to:
+
+arduino
+Copy
+Edit
+POST http://localhost:3000/api/upload-to-openai
+Content-Type: multipart/form-data
+Body: { image: <your image file> }
