@@ -36,80 +36,72 @@ export async function fetchFacebookPostAnalytics(postId: string) {
     const fullPostId = formatFacebookPostId(postId);
     console.log(`Fetching Facebook analytics for post ID: ${fullPostId}`);
     
-    // Use valid metrics for Facebook Page Posts Insights API for v18.0
-    // Valid metrics list from FB API documentation: https://developers.facebook.com/docs/graph-api/reference/v18.0/insights
-    const validMetrics = [
-      'post_impressions',
-      'post_engaged_users',
-      'post_reactions_by_type_total'
-    ];
-    
-    const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}/insights`;
-    const params = new URLSearchParams({
-      metric: validMetrics.join(','),
+    // Per Facebook API documentation, attempting to directly get engagement data
+    // Avoiding the Insights API for more reliable results
+    const postApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}`;
+    const fields = 'reactions.summary(true),comments.summary(true),message,created_time';
+    const postParams = new URLSearchParams({
+      fields,
       access_token: FACEBOOK_ACCESS_TOKEN
     });
-
-    console.log(`Requesting Facebook metrics: ${apiUrl}?metric=[HIDDEN]&access_token=[HIDDEN]`);
-    const response = await fetch(`${apiUrl}?${params.toString()}`);
+    
+    console.log(`Requesting basic post data with fields: ${fields}`);
+    const response = await fetch(`${postApiUrl}?${postParams.toString()}`);
     const data = await response.json() as any;
 
     if (data.error) {
-      console.error('Error fetching Facebook post analytics:', data.error);
+      console.error('Error fetching Facebook post data:', data.error);
       
-      // If we can't get insights, try getting basic engagement data directly from the post
+      // Try to get shares count separately as a fallback
       try {
-        console.log(`Trying to get basic post data instead for: ${fullPostId}`);
-        const postApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}`;
+        console.log(`Trying to get shares count for post: ${fullPostId}`);
+        const sharesUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}?fields=shares&access_token=${FACEBOOK_ACCESS_TOKEN}`;
+        const sharesResponse = await fetch(sharesUrl);
+        const sharesData = await sharesResponse.json() as any;
         
-            // For the Facebook Graph API v18.0, we'll use a direct approach to get post engagement data
-        // Using only valid fields that are supported in the current API version
-        const fields = 'reactions.summary(true),comments.summary(true),message,created_time';
-        const postParams = new URLSearchParams({
-          fields,
-          access_token: FACEBOOK_ACCESS_TOKEN
-        });
-        
-        console.log(`Requesting basic post data with fields: ${fields}`);
-        const postResponse = await fetch(`${postApiUrl}?${postParams.toString()}`);
-        const postData = await postResponse.json() as any;
-        
-        if (!postData.error) {
-          console.log('Got basic post engagement data');
-          
-          // Create simple metrics from the basic post data
-          const metrics = {
-            likes: postData.likes?.summary?.total_count || postData.reactions?.summary?.total_count || 0,
-            comments: postData.comments?.summary?.total_count || 0,
-            shares: postData.shares?.count || 0,
-            impressions: 0,
-            reach: 0,
-            engagement: 0,
-            clicks: 0
-          };
-          
-          // Estimate total engagement
-          metrics.engagement = metrics.likes + metrics.comments + metrics.shares;
-          
-          return {
-            success: true,
-            metrics
-          };
-        } else {
-          console.error('Error fetching basic post data:', postData.error);
+        if (!sharesData.error && sharesData.shares) {
+          console.log('Got shares count:', sharesData.shares.count);
+          // We'll handle this data in another approach
         }
-      } catch (postError) {
-        console.error('Error in fallback post data request:', postError);
+      } catch (sharesError) {
+        console.log('Could not get shares count:', sharesError);
       }
       
       return {
         success: false,
-        error: data.error.message || 'Error fetching Facebook analytics'
+        error: data.error.message || 'Error fetching Facebook post data'
       };
     }
-
-    // Process and format the analytics data
-    const metrics = processMetrics(data.data);
+    
+    // Process basic post data into metrics
+    console.log('Got basic post engagement data');
+    
+    // Create metrics from the post data
+    const metrics = {
+      likes: data.reactions?.summary?.total_count || 0,
+      comments: data.comments?.summary?.total_count || 0,
+      shares: 0, // Will attempt to fetch separately
+      impressions: 0, // Not available from basic API
+      reach: 0, // Not available from basic API
+      engagement: 0, // Will calculate below
+      clicks: 0 // Not available from basic API
+    };
+    
+    // Try to get shares separately (this is done in a separate request as recommended)
+    try {
+      const sharesUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}?fields=shares&access_token=${FACEBOOK_ACCESS_TOKEN}`;
+      const sharesResponse = await fetch(sharesUrl);
+      const sharesData = await sharesResponse.json() as any;
+      
+      if (!sharesData.error && sharesData.shares) {
+        metrics.shares = sharesData.shares.count || 0;
+      }
+    } catch (sharesError) {
+      console.log('Could not get shares count:', sharesError);
+    }
+    
+    // Calculate engagement as sum of likes, comments, shares
+    metrics.engagement = metrics.likes + metrics.comments + metrics.shares;
     
     return {
       success: true,
@@ -136,7 +128,7 @@ export async function fetchInstagramPostAnalytics(postId: string) {
 
     console.log(`Fetching Instagram analytics for post ID: ${postId}`);
     
-    // Instagram media ID format
+    // Instagram media ID format - ensure ID is properly formatted with the business account ID
     const mediaId = postId.includes('_') ? postId : `${INSTAGRAM_BUSINESS_ACCOUNT_ID}_${postId}`;
     
     // Initialize base metrics
@@ -151,10 +143,10 @@ export async function fetchInstagramPostAnalytics(postId: string) {
       engagement: 0
     };
     
-    // STEP 1: First check the media type to determine which metrics we can request
+    // STEP 1: First get basic media data using valid fields per Facebook API documentation
     const mediaInfoUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${mediaId}`;
     const mediaInfoParams = new URLSearchParams({
-      fields: 'media_type,like_count,comments_count',
+      fields: 'media_type,like_count,comments_count,timestamp',
       access_token: FACEBOOK_ACCESS_TOKEN
     });
     
@@ -170,18 +162,19 @@ export async function fetchInstagramPostAnalytics(postId: string) {
         metrics.likes = mediaInfo.like_count || 0;
         metrics.comments = mediaInfo.comments_count || 0;
         
-        // STEP 2: Based on media type, request relevant insights metrics
+        // STEP 2: Based on media type, request relevant insights metrics with individual requests
+        // This approach is more reliable than requesting multiple metrics at once
         const mediaType = mediaInfo.media_type || 'IMAGE';
         const insightsApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${mediaId}/insights`;
         
-        // Only request valid metrics for the media type
-        // Based on guidance for safe, commonly supported metrics
+        // Only request valid metrics for the specific media type
+        // Based on Instagram API documentation for reliable metrics
         const validMetrics: string[] = [];
         
         if (mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM') {
           validMetrics.push('impressions', 'reach', 'saved');
         } else if (mediaType === 'VIDEO' || mediaType === 'REEL') {
-          validMetrics.push('impressions', 'reach', 'video_views', 'saved');
+          validMetrics.push('impressions', 'reach', 'saved');
         }
         
         // Request each metric individually to avoid API errors
@@ -203,7 +196,6 @@ export async function fetchInstagramPostAnalytics(postId: string) {
               if (metric === 'impressions') metrics.impressions = value;
               else if (metric === 'reach') metrics.reach = value;
               else if (metric === 'saved') metrics.saved = value;
-              // Add other metrics as needed
             }
           } catch (metricError) {
             console.error(`Error fetching ${metric} metric:`, metricError);
