@@ -3,7 +3,7 @@ import { Post } from '@shared/schema';
 
 // Facebook Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
-const FACEBOOK_PAGE_ID = process.env.FACEBOOK_PAGE_ID;
+const FACEBOOK_PAGE_ID = process.env.FACEBOOK_PAGE_ID || '1640489706269205'; // Default page ID if not set in env
 const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
 
@@ -16,11 +16,18 @@ export async function fetchFacebookPostAnalytics(postId: string) {
     if (!FACEBOOK_ACCESS_TOKEN) {
       throw new Error('Facebook access token not configured');
     }
+    
+    // Format the postId properly with the page ID if it doesn't already include it
+    let fullPostId = postId;
+    if (!postId.includes('_') && FACEBOOK_PAGE_ID) {
+      fullPostId = `${FACEBOOK_PAGE_ID}_${postId}`;
+      console.log(`Formatted Facebook post ID from ${postId} to ${fullPostId}`);
+    }
 
-    console.log(`Fetching Facebook analytics for post ID: ${postId}`);
+    console.log(`Fetching Facebook analytics for post ID: ${fullPostId}`);
     
     // Use recommended metrics from Facebook Insights API
-    const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${postId}/insights`;
+    const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}/insights`;
     const params = new URLSearchParams({
       metric: 'post_impressions,post_impressions_unique,post_engaged_users,post_clicks,post_reactions_by_type_total,post_comments,post_shares',
       access_token: FACEBOOK_ACCESS_TOKEN
@@ -35,8 +42,8 @@ export async function fetchFacebookPostAnalytics(postId: string) {
       
       // If we can't get insights, try getting basic engagement data directly from the post
       try {
-        console.log(`Trying to get basic post data instead for: ${postId}`);
-        const postApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${postId}`;
+        console.log(`Trying to get basic post data instead for: ${fullPostId}`);
+        const postApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}`;
         
         // Get post type first so we can adapt our fields request
         const typeResponse = await fetch(`${postApiUrl}?fields=type&access_token=${FACEBOOK_ACCESS_TOKEN}`);
@@ -357,6 +364,36 @@ export async function fetchCombinedPostAnalytics(post: Post) {
 
     // Calculate total engagement
     analytics.engagement = analytics.likes + analytics.comments + analytics.shares + analytics.saved;
+
+    // Add platform-specific metrics for the frontend
+    if (hasFacebookData && analytics.platforms.facebook) {
+      analytics.facebookImpressions = analytics.platforms.facebook.impressions || 0;
+      analytics.facebookReach = analytics.platforms.facebook.reach || 0;
+      analytics.facebookLikes = analytics.platforms.facebook.likes || 0;
+      analytics.facebookComments = analytics.platforms.facebook.comments || 0;
+      analytics.facebookShares = analytics.platforms.facebook.shares || 0;
+      analytics.facebookClicks = analytics.platforms.facebook.clicks || 0;
+      analytics.facebookEngagement = analytics.platforms.facebook.engagement || 0;
+    }
+    
+    if (hasInstagramData && analytics.platforms.instagram) {
+      analytics.instagramImpressions = analytics.platforms.instagram.impressions || 0;
+      analytics.instagramReach = analytics.platforms.instagram.reach || 0;
+      analytics.instagramLikes = analytics.platforms.instagram.likes || 0;
+      analytics.instagramComments = analytics.platforms.instagram.comments || 0;
+      analytics.instagramShares = analytics.platforms.instagram.shares || 0;
+      analytics.instagramSaved = analytics.platforms.instagram.saved || 0;
+      analytics.instagramEngagement = analytics.platforms.instagram.engagement || 0;
+    }
+    
+    // Set totalSaved if Instagram data is available
+    if (hasInstagramData && analytics.platforms.instagram) {
+      analytics.totalSaved = analytics.platforms.instagram.saved || 0;
+    }
+    
+    // Set totalReach if any platform has reach data
+    analytics.totalReach = (analytics.platforms.facebook?.reach || 0) + 
+                          (analytics.platforms.instagram?.reach || 0);
 
     return {
       success: true,
