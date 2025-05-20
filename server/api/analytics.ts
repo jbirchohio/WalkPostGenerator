@@ -239,6 +239,13 @@ export async function fetchInstagramPostAnalytics(postId: string) {
  */
 export async function fetchCombinedPostAnalytics(post: Post) {
   try {
+    console.log("Fetching analytics for post:", post.id);
+    console.log("Platform IDs:", {
+      facebook: post.facebookPostId,
+      instagram: post.instagramPostId,
+      publishedTo: post.publishedTo
+    });
+    
     const analytics = {
       impressions: 0,
       likes: 0,
@@ -249,46 +256,89 @@ export async function fetchCombinedPostAnalytics(post: Post) {
       clicks: 0,
       platforms: {} as any
     };
+    
+    let hasFacebookData = false;
+    let hasInstagramData = false;
+    let errors: string[] = [];
 
-    // Fetch Facebook analytics if we have a Facebook post ID
-    if (post.publishedTo && post.publishedTo.includes('facebook') && post.facebookPostId) {
-      console.log(`Fetching analytics for Facebook post ID: ${post.facebookPostId}`);
-      const fbAnalytics = await fetchFacebookPostAnalytics(post.facebookPostId);
-      if (fbAnalytics.success && fbAnalytics.metrics) {
-        analytics.platforms.facebook = fbAnalytics.metrics;
-        analytics.impressions += fbAnalytics.metrics.impressions || 0;
-        analytics.likes += fbAnalytics.metrics.likes || 0;
-        analytics.comments += fbAnalytics.metrics.comments || 0;
-        analytics.shares += fbAnalytics.metrics.shares || 0;
-        analytics.clicks += fbAnalytics.metrics.clicks || 0;
+    // Fetch Facebook analytics if this post is published to Facebook
+    if (post.publishedTo && post.publishedTo.includes('facebook')) {
+      if (post.facebookPostId) {
+        console.log(`Fetching analytics for Facebook post ID: ${post.facebookPostId}`);
+        try {
+          const fbAnalytics = await fetchFacebookPostAnalytics(post.facebookPostId);
+          if (fbAnalytics.success && fbAnalytics.metrics) {
+            analytics.platforms.facebook = fbAnalytics.metrics;
+            analytics.impressions += fbAnalytics.metrics.impressions || 0;
+            analytics.likes += fbAnalytics.metrics.likes || 0;
+            analytics.comments += fbAnalytics.metrics.comments || 0;
+            analytics.shares += fbAnalytics.metrics.shares || 0;
+            analytics.clicks += fbAnalytics.metrics.clicks || 0;
+            hasFacebookData = true;
+          } else {
+            errors.push(`Facebook error: ${fbAnalytics.error || 'Unknown error'}`);
+          }
+        } catch (error: any) {
+          console.error("Error fetching Facebook analytics:", error);
+          errors.push(`Facebook error: ${error.message || 'Unknown error'}`);
+        }
+      } else {
+        console.warn(`Post ${post.id} is marked as published to Facebook but has no Facebook post ID`);
+        errors.push("Post is published to Facebook but has no Facebook post ID");
       }
-    } else {
-      console.log('No Facebook post ID available or not published to Facebook');
     }
 
-    // Fetch Instagram analytics if we have an Instagram post ID
-    if (post.publishedTo && post.publishedTo.includes('instagram') && post.instagramPostId) {
-      console.log(`Fetching analytics for Instagram post ID: ${post.instagramPostId}`);
-      const igAnalytics = await fetchInstagramPostAnalytics(post.instagramPostId);
-      if (igAnalytics.success && igAnalytics.metrics) {
-        analytics.platforms.instagram = igAnalytics.metrics;
-        analytics.impressions += igAnalytics.metrics.impressions || 0;
-        analytics.likes += igAnalytics.metrics.likes || 0;
-        analytics.comments += igAnalytics.metrics.comments || 0;
-        analytics.shares += igAnalytics.metrics.shares || 0;
-        analytics.saved += igAnalytics.metrics.saved || 0;
-        analytics.clicks += igAnalytics.metrics.clicks || 0;
+    // Fetch Instagram analytics if this post is published to Instagram
+    if (post.publishedTo && post.publishedTo.includes('instagram')) {
+      if (post.instagramPostId) {
+        console.log(`Fetching analytics for Instagram post ID: ${post.instagramPostId}`);
+        try {
+          const igAnalytics = await fetchInstagramPostAnalytics(post.instagramPostId);
+          if (igAnalytics.success && igAnalytics.metrics) {
+            analytics.platforms.instagram = igAnalytics.metrics;
+            analytics.impressions += igAnalytics.metrics.impressions || 0;
+            analytics.likes += igAnalytics.metrics.likes || 0;
+            analytics.comments += igAnalytics.metrics.comments || 0;
+            analytics.shares += igAnalytics.metrics.shares || 0;
+            analytics.saved += igAnalytics.metrics.saved || 0;
+            analytics.clicks += igAnalytics.metrics.clicks || 0;
+            hasInstagramData = true;
+          } else {
+            errors.push(`Instagram error: ${igAnalytics.error || 'Unknown error'}`);
+          }
+        } catch (error: any) {
+          console.error("Error fetching Instagram analytics:", error);
+          errors.push(`Instagram error: ${error.message || 'Unknown error'}`);
+        }
+      } else {
+        console.warn(`Post ${post.id} is marked as published to Instagram but has no Instagram post ID`);
+        errors.push("Post is published to Instagram but has no Instagram post ID");
       }
-    } else {
-      console.log('No Instagram post ID available or not published to Instagram');
     }
 
-    // Calculate total engagement (now includes saved count)
+    // Check if no data was retrieved
+    if (!hasFacebookData && !hasInstagramData) {
+      // If post has platforms but no data was retrieved
+      if (post.publishedTo && post.publishedTo.length > 0) {
+        return {
+          success: false,
+          error: `Could not retrieve analytics from any platform. ${errors.join('. ')}`
+        };
+      } else {
+        return {
+          success: false,
+          error: "Post is not published to any social media platform"
+        };
+      }
+    }
+
+    // Calculate total engagement
     analytics.engagement = analytics.likes + analytics.comments + analytics.shares + analytics.saved;
 
     return {
       success: true,
-      analytics
+      analytics,
+      warnings: errors.length > 0 ? errors : undefined
     };
   } catch (error: any) {
     console.error('Error in fetchCombinedPostAnalytics:', error);
