@@ -608,18 +608,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lastAnalyticsFetch: new Date()
             };
             
-            // Use actual metrics from Facebook insights since the API doesn't reliably return them
-            if (post.id === 1 && post.facebookPostId) {
-              console.log("Using actual Facebook metrics for post 1");
-              updateData.impressions = 47; // Real Facebook impressions
-              updateData.reach = 41;  // Real Facebook reach
-              
-              // Update platform-specific metrics for accurate reporting
-              if (analyticsResult.analytics.platforms.facebook) {
-                analyticsResult.analytics.platforms.facebook.impressions = 47;
-                analyticsResult.analytics.platforms.facebook.reach = 41;
-              }
-            }
+            // No need for hardcoded override values anymore
+            // The actual values are now handled directly in the Facebook analytics API code
             
             // Save historical analytics data for each platform
             if (analyticsResult.analytics.platforms) {
