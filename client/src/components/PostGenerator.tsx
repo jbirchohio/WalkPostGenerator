@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { Loader2, Facebook, Instagram, Calendar, Clock } from "lucide-react";
+import { Loader2, Facebook, Instagram, Calendar, Clock, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -230,6 +230,75 @@ export default function PostGenerator({
       setIsPosting(false);
     }
   };
+  
+  // Handle posting to both platforms simultaneously
+  const handleShareToBoth = async () => {
+    if (!generatedPost) return;
+    
+    if (!selectedImage) {
+      toast({
+        title: "Image Required",
+        description: "Instagram requires an image. Please add an image before posting to both platforms.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsPosting(true);
+    
+    try {
+      // Prepare the payload for multi-platform posting
+      const payload = {
+        message: generatedPost,
+        image: selectedImage,
+        postType: currentDraft?.postType || form.getValues().postType,
+        productName: currentDraft?.product || form.getValues().productName
+      };
+      
+      // Send the request to our multi-platform posting endpoint
+      const response = await fetch('/api/post-to-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Success message with platforms that received the post
+        toast({
+          title: "Posted Successfully",
+          description: `Your post has been shared to ${result.platforms.join(' and ')}.`
+        });
+        
+        // If any platform had an error, show a warning
+        if ((!result.facebook?.success || !result.instagram?.success) && result.platforms.length > 0) {
+          const failedPlatforms = [];
+          if (!result.facebook?.success) failedPlatforms.push('Facebook');
+          if (!result.instagram?.success) failedPlatforms.push('Instagram');
+          
+          toast({
+            title: "Partial Success",
+            description: `Post failed on ${failedPlatforms.join(' and ')}. Check the History page for details.`,
+            variant: "destructive",
+          });
+        }
+      } else {
+        throw new Error(result.error || result.message || "Error posting to social media platforms");
+      }
+    } catch (error: any) {
+      console.error("Error with multi-platform share:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Something went wrong posting to social media",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
 
   // Handle post editing
   const handleEditPost = (editedText: string) => {
@@ -421,10 +490,11 @@ export default function PostGenerator({
               </div>
               
               {/* Social Media Share Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 mb-2">
                 <Button
                   onClick={handleShareToFacebook}
                   className="flex-1 py-3 px-4 bg-black hover:bg-[#303030] text-[#ffd700] font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors flex justify-center items-center"
+                  disabled={isPosting}
                 >
                   <Facebook className="h-5 w-5 mr-2" />
                   Share to Facebook
@@ -432,11 +502,26 @@ export default function PostGenerator({
                 <Button
                   onClick={handleShareToInstagram}
                   className="flex-1 py-3 px-4 bg-black hover:bg-[#303030] text-[#ffd700] font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffd700] transition-colors flex justify-center items-center"
+                  disabled={isPosting}
                 >
                   <Instagram className="h-5 w-5 mr-2" />
                   Share to Instagram
                 </Button>
               </div>
+              
+              {/* Post to Both Platforms Button */}
+              <Button
+                onClick={handleShareToBoth}
+                className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors flex justify-center items-center mb-3"
+                disabled={isPosting || !selectedImage}
+              >
+                {isPosting ? (
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                ) : (
+                  <Share2 className="h-5 w-5 mr-2" />
+                )}
+                Post to Both Platforms
+              </Button>
               
               {scheduledDate && (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">

@@ -7,6 +7,7 @@ import { postToFacebook } from "./api/facebook";
 import { postToInstagram } from "./api/instagram";
 import { registerImageRoutes } from "./routes-images";
 import { saveBase64ImageAndGetUrl } from "./api/upload";
+import { uploadToCloudinary } from "./api/cloudinary";
 import { 
   savePost, 
   updatePost, 
