@@ -146,13 +146,13 @@ export async function fetchInstagramPostAnalytics(postId: string) {
         const insightsApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${mediaId}/insights`;
         
         // Only request valid metrics for the media type
-        // Based on your guidance for safe, commonly supported metrics
-        let validMetrics = [];
+        // Based on guidance for safe, commonly supported metrics
+        const validMetrics: string[] = [];
         
         if (mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM') {
-          validMetrics = ['impressions', 'reach', 'saved'];
+          validMetrics.push('impressions', 'reach', 'saved');
         } else if (mediaType === 'VIDEO' || mediaType === 'REEL') {
-          validMetrics = ['impressions', 'reach', 'video_views', 'saved'];
+          validMetrics.push('impressions', 'reach', 'video_views', 'saved');
         }
         
         // Request each metric individually to avoid API errors

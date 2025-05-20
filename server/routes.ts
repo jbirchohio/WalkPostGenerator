@@ -413,87 +413,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!postsResult.success) {
         return res.status(500).json({
           success: false,
-          error: postsResult.error || "Failed to get posts"
+          error: postsResult.error || "Failed to get published posts"
         });
       }
       
       const refreshedPosts = [];
+      const skippedPosts = [];
       const errors = [];
       
+      // Validate posts before trying to refresh
+      if (!postsResult.posts || postsResult.posts.length === 0) {
+        return res.json({
+          success: true,
+          message: "No published posts found to refresh",
+          refreshed: 0
+        });
+      }
+      
+      console.log(`Found ${postsResult.posts.length} published posts to refresh analytics`);
+      
       // Refresh analytics for each post
-      if (postsResult.posts && postsResult.posts.length > 0) {
-        for (const post of postsResult.posts) {
-          try {
-            // Fetch analytics from platforms
-            const analyticsResult = await fetchCombinedPostAnalytics(post);
+      for (const post of postsResult.posts) {
+        // Skip posts that don't have platform IDs
+        if ((!post.facebookPostId && !post.instagramPostId) || 
+            !post.publishedTo || post.publishedTo.length === 0) {
+          console.log(`Skipping post ${post.id} - No platform IDs or not published to any platform`);
+          skippedPosts.push({
+            postId: post.id,
+            reason: "No platform IDs or not published to any social media platform"
+          });
+          continue;
+        }
+          
+        try {
+          console.log(`Refreshing analytics for post ${post.id}`);
+          console.log(`Platform IDs: Facebook=${post.facebookPostId}, Instagram=${post.instagramPostId}`);
+          
+          // Fetch analytics from platforms
+          const analyticsResult = await fetchCombinedPostAnalytics(post);
+          
+          if (analyticsResult.success && analyticsResult.analytics) {
+            // Update the post with the new analytics data
+            const updateData = {
+              impressions: analyticsResult.analytics.impressions || 0,
+              likes: analyticsResult.analytics.likes || 0,
+              comments: analyticsResult.analytics.comments || 0,
+              shares: analyticsResult.analytics.shares || 0,
+              clicks: analyticsResult.analytics.clicks || 0,
+              engagement: analyticsResult.analytics.engagement || 0,
+              lastAnalyticsFetch: new Date()
+            };
             
-            if (analyticsResult.success && analyticsResult.analytics) {
-              // Update the post with the new analytics data
-              const updateData = {
-                impressions: analyticsResult.analytics.impressions || 0,
-                likes: analyticsResult.analytics.likes || 0,
-                comments: analyticsResult.analytics.comments || 0,
-                shares: analyticsResult.analytics.shares || 0,
-                clicks: analyticsResult.analytics.clicks || 0,
-                engagement: analyticsResult.analytics.engagement || 0,
-                lastAnalyticsFetch: new Date()
-              };
+            // Save historical analytics data for each platform
+            if (analyticsResult.analytics.platforms) {
+              const platforms = analyticsResult.analytics.platforms;
               
-              // Save historical analytics data for each platform
-              if (analyticsResult.analytics.platforms) {
-                const platforms = analyticsResult.analytics.platforms;
+              // Save Facebook analytics history if available
+              if (platforms.facebook && post.publishedTo?.includes('facebook')) {
+                const fbData = platforms.facebook;
+                const analyticsEntry = {
+                  postId: post.id,
+                  platform: 'facebook',
+                  impressions: fbData.impressions || 0,
+                  likes: fbData.likes || 0,
+                  comments: fbData.comments || 0,
+                  shares: fbData.shares || 0,
+                  clicks: fbData.clicks || 0,
+                  engagementRate: ((fbData.engagement || 0) / (fbData.impressions || 1) * 100).toFixed(2),
+                  metadata: fbData
+                };
                 
-                // Save Facebook analytics history if available
-                if (platforms.facebook && post.publishedTo?.includes('facebook')) {
-                  const fbData = platforms.facebook;
-                  await savePostAnalytics({
-                    postId: post.id,
-                    platform: 'facebook',
-                    impressions: fbData.impressions || 0,
-                    likes: fbData.likes || 0,
-                    comments: fbData.comments || 0,
-                    shares: fbData.shares || 0,
-                    clicks: fbData.clicks || 0,
-                    engagementRate: ((fbData.engagement || 0) / (fbData.impressions || 1) * 100).toFixed(2),
-                    metadata: fbData
-                  });
-                }
-                
-                // Save Instagram analytics history if available
-                if (platforms.instagram && post.publishedTo?.includes('instagram')) {
-                  const igData = platforms.instagram;
-                  await savePostAnalytics({
-                    postId: post.id,
-                    platform: 'instagram',
-                    impressions: igData.impressions || 0,
-                    likes: igData.likes || 0,
-                    comments: igData.comments || 0,
-                    shares: igData.shares || 0,
-                    clicks: igData.clicks || 0,
-                    engagementRate: ((igData.engagement || 0) / (igData.impressions || 1) * 100).toFixed(2),
-                    metadata: igData
-                  });
-                }
+                console.log(`Saving Facebook analytics history for post ${post.id}:`, analyticsEntry);
+                await savePostAnalytics(analyticsEntry);
               }
               
-              const updateResult = await updatePost(post.id, updateData);
-              
-              if (updateResult.success) {
-                refreshedPosts.push(updateResult.post);
+              // Save Instagram analytics history if available
+              if (platforms.instagram && post.publishedTo?.includes('instagram')) {
+                const igData = platforms.instagram;
+                const analyticsEntry = {
+                  postId: post.id,
+                  platform: 'instagram',
+                  impressions: igData.impressions || 0,
+                  likes: igData.likes || 0,
+                  comments: igData.comments || 0,
+                  shares: igData.shares || 0,
+                  clicks: igData.clicks || 0,
+                  engagementRate: ((igData.engagement || 0) / (igData.impressions || 1) * 100).toFixed(2),
+                  metadata: igData
+                };
+                
+                console.log(`Saving Instagram analytics history for post ${post.id}:`, analyticsEntry);
+                await savePostAnalytics(analyticsEntry);
               }
             }
-          } catch (postError: any) {
+            
+            const updateResult = await updatePost(post.id, updateData);
+            
+            if (updateResult.success) {
+              refreshedPosts.push(updateResult.post);
+            } else {
+              errors.push({
+                postId: post.id,
+                error: updateResult.error || `Failed to update post ${post.id} with new analytics`
+              });
+            }
+          } else {
+            // Log analytics errors but continue to next post
+            console.warn(`Failed to fetch analytics for post ${post.id}: ${analyticsResult.error}`);
             errors.push({
               postId: post.id,
-              error: postError.message || `Failed to refresh post ${post.id}`
+              error: analyticsResult.error || `Failed to fetch analytics for post ${post.id}`
             });
           }
+        } catch (postError: any) {
+          console.error(`Error refreshing analytics for post ${post.id}:`, postError);
+          errors.push({
+            postId: post.id,
+            error: postError.message || `Failed to refresh post ${post.id}`
+          });
         }
       }
       
       return res.json({
         success: true,
         refreshed: refreshedPosts.length,
+        skipped: skippedPosts.length > 0 ? skippedPosts : undefined,
         errors: errors.length > 0 ? errors : undefined
       });
     } catch (error: any) {
