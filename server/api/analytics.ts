@@ -8,6 +8,21 @@ const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
 
 /**
+ * Format a Facebook post ID to ensure it has the required page_id prefix
+ * @param postId The Facebook post ID to format
+ * @returns A properly formatted Facebook post ID in the format {page_id}_{post_id}
+ */
+function formatFacebookPostId(postId: string): string {
+  // If postId already contains an underscore, assume it's already properly formatted
+  if (postId.includes('_')) {
+    return postId;
+  }
+  
+  // Otherwise, prepend the page ID
+  return `${FACEBOOK_PAGE_ID}_${postId}`;
+}
+
+/**
  * Fetch analytics data for a Facebook post
  * @param postId The Facebook post ID to fetch metrics for
  */
@@ -17,13 +32,8 @@ export async function fetchFacebookPostAnalytics(postId: string) {
       throw new Error('Facebook access token not configured');
     }
     
-    // Format the postId properly with the page ID if it doesn't already include it
-    let fullPostId = postId;
-    if (!postId.includes('_') && FACEBOOK_PAGE_ID) {
-      fullPostId = `${FACEBOOK_PAGE_ID}_${postId}`;
-      console.log(`Formatted Facebook post ID from ${postId} to ${fullPostId}`);
-    }
-
+    // Format the postId properly with the page ID 
+    const fullPostId = formatFacebookPostId(postId);
     console.log(`Fetching Facebook analytics for post ID: ${fullPostId}`);
     
     // Use recommended metrics from Facebook Insights API
