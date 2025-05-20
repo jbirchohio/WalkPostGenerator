@@ -1,0 +1,104 @@
+Thanks — that breakdown is super helpful. Here's a detailed diagnosis and fix plan based on what you're requesting and where you're hitting issues:
+
+✅ What You're Requesting:
+🔹 Facebook – Post Insights API (Primary)
+plaintext
+Copy
+Edit
+post_impressions
+post_impressions_unique
+post_engaged_users
+post_reactions_by_type_total
+✅ These are valid post-level metrics and should work only if:
+
+You're using the full composite post ID: {page_id}_{post_id}
+
+The post was created by the Page, not shared or boosted by someone else
+
+The access token is a valid Page access token with pages_read_engagement
+
+🔹 Facebook – Post Data Fallback
+plaintext
+Copy
+Edit
+reactions.summary(true)
+comments.summary(true)
+⚠️ The issue is not these fields, but how you're requesting them.
+
+❌ Deprecated usage:
+http
+Copy
+Edit
+GET /{post_id}?fields=attachments{media_type},... 
+✅ Fix: Use only valid fields
+http
+Copy
+Edit
+GET /{post_id}?fields=reactions.summary(true),comments.summary(true),message,created_time
+⚠️ Do not use attachments{...} — that’s what's triggering the error:
+
+(#12) deprecate_post_aggregated_fields_for_attachement is deprecated
+
+🔹 Instagram – Media Insights
+You're using:
+
+plaintext
+Copy
+Edit
+engagement
+impressions
+reach
+saved
+✅ These are correct. However, engagement and saved are only returned if:
+
+The post is from an Instagram business account
+
+It was published via the Graph API, not manually
+
+✅ What You Should Do
+🔧 Fix 1: Clean Up Fallback Facebook Post Data Request
+Update your fallback to:
+
+ts
+Copy
+Edit
+const fallbackUrl = `https://graph.facebook.com/v18.0/${postId}?fields=reactions.summary(true),comments.summary(true),message,created_time&access_token=${pageAccessToken}`;
+Remove any attachments, media_type, or deprecated post fields.
+
+🔧 Fix 2: Validate Instagram Media Insights Results
+If you're getting empty values from:
+
+http
+Copy
+Edit
+GET /{media_id}/insights?metric=engagement,impressions,reach,saved
+...check:
+
+That the IG post was published via API
+
+Your token includes instagram_manage_insights
+
+Also, consider fallback fields for Instagram:
+
+http
+Copy
+Edit
+GET /{media_id}?fields=like_count,comments_count,media_type,timestamp
+💡 Suggested Updated Facebook Logic (TypeScript-style)
+ts
+Copy
+Edit
+const validMetrics = [
+  'post_impressions',
+  'post_impressions_unique',
+  'post_engaged_users',
+  'post_reactions_by_type_total',
+];
+
+const insightsUrl = `https://graph.facebook.com/v18.0/${pageId}_${postId}/insights?metric=${validMetrics.join(',')}&access_token=${token}`;
+Fallback if error:
+
+ts
+Copy
+Edit
+const fallbackUrl = `https://graph.facebook.com/v18.0/${pageId}_${postId}?fields=reactions.summary

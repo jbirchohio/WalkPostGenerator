@@ -36,10 +36,17 @@ export async function fetchFacebookPostAnalytics(postId: string) {
     const fullPostId = formatFacebookPostId(postId);
     console.log(`Fetching Facebook analytics for post ID: ${fullPostId}`);
     
-    // Use recommended metrics from Facebook Insights API
+    // Use valid metrics for Facebook Page Posts Insights API for v18.0
+    // Valid metrics list from FB API documentation: https://developers.facebook.com/docs/graph-api/reference/v18.0/insights
+    const validMetrics = [
+      'post_impressions',
+      'post_engaged_users',
+      'post_reactions_by_type_total'
+    ];
+    
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}/insights`;
     const params = new URLSearchParams({
-      metric: 'post_impressions,post_impressions_unique,post_engaged_users,post_clicks,post_reactions_by_type_total,post_comments,post_shares',
+      metric: validMetrics.join(','),
       access_token: FACEBOOK_ACCESS_TOKEN
     });
 
@@ -55,38 +62,20 @@ export async function fetchFacebookPostAnalytics(postId: string) {
         console.log(`Trying to get basic post data instead for: ${fullPostId}`);
         const postApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}`;
         
-        // Get post type first so we can adapt our fields request
-        const typeResponse = await fetch(`${postApiUrl}?fields=type&access_token=${FACEBOOK_ACCESS_TOKEN}`);
-        const typeData = await typeResponse.json() as any;
-        
-        if (typeData.error) {
-          console.error('Error determining post type:', typeData.error);
-          throw new Error(`Failed to determine post type: ${typeData.error.message}`);
-        }
-        
-        const postType = typeData.type || 'status';
-        console.log(`Post type is: ${postType}`);
-        
-        // Adjust fields based on post type
-        let fields = 'likes.summary(true),comments.summary(true)';
-        if (postType === 'photo' || postType === 'video') {
-          // Photo and video posts don't have shares field
-          fields += ',reactions.summary(true)';
-        } else {
-          // Other post types can have shares
-          fields += ',shares,reactions.summary(true)';
-        }
-        
+            // For the Facebook Graph API v18.0, we'll use a direct approach to get post engagement data
+        // Using only valid fields that are supported in the current API version
+        const fields = 'reactions.summary(true),comments.summary(true),message,created_time';
         const postParams = new URLSearchParams({
           fields,
           access_token: FACEBOOK_ACCESS_TOKEN
         });
         
+        console.log(`Requesting basic post data with fields: ${fields}`);
         const postResponse = await fetch(`${postApiUrl}?${postParams.toString()}`);
         const postData = await postResponse.json() as any;
         
         if (!postData.error) {
-          console.log('Got basic post engagement data for post type:', postType);
+          console.log('Got basic post engagement data');
           
           // Create simple metrics from the basic post data
           const metrics = {
