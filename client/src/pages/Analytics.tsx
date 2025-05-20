@@ -383,7 +383,7 @@ export default function Analytics() {
       ) : (
         <>
           {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <Card>
               <CardHeader className="py-4 px-6">
                 <CardTitle className="text-lg">Total Posts</CardTitle>
@@ -407,10 +407,20 @@ export default function Analytics() {
             <Card>
               <CardHeader className="py-4 px-6">
                 <CardTitle className="text-lg">Impressions</CardTitle>
-                <CardDescription>Total views</CardDescription>
+                <CardDescription>Total views count</CardDescription>
               </CardHeader>
               <CardContent className="py-2 px-6">
                 <p className="text-3xl font-bold">{formatNumber(analyticsData.metrics.totalImpressions)}</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="py-4 px-6">
+                <CardTitle className="text-lg">Reach</CardTitle>
+                <CardDescription>Unique viewers</CardDescription>
+              </CardHeader>
+              <CardContent className="py-2 px-6">
+                <p className="text-3xl font-bold">{formatNumber(analyticsData.metrics.totalReach || 0)}</p>
               </CardContent>
             </Card>
             
