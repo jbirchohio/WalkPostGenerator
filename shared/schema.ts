@@ -34,6 +34,7 @@ export const posts = pgTable("posts", {
   shares: integer("shares").default(0),
   comments: integer("comments").default(0),
   impressions: integer("impressions").default(0),
+  reach: integer("reach").default(0),
   // Platform-specific post IDs for analytics
   facebookPostId: text("facebook_post_id"),
   instagramPostId: text("instagram_post_id"),

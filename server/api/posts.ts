@@ -402,7 +402,8 @@ export async function getAnalyticsSummary(): Promise<{ success: boolean; summary
         totalShares: sql<number>`sum(${posts.shares})`,
         totalComments: sql<number>`sum(${posts.comments})`,
         totalClicks: sql<number>`sum(${posts.clicks})`,
-        totalEngagement: sql<number>`sum(${posts.engagement})`
+        totalEngagement: sql<number>`sum(${posts.engagement})`,
+        totalReach: sql<number>`sum(${posts.reach})`
       })
       .from(posts);
     
@@ -446,7 +447,8 @@ export async function getAnalyticsSummary(): Promise<{ success: boolean; summary
           totalShares: metrics.totalShares || 0,
           totalComments: metrics.totalComments || 0,
           totalClicks: metrics.totalClicks || 0,
-          totalEngagement: metrics.totalEngagement || 0
+          totalEngagement: metrics.totalEngagement || 0,
+          totalReach: metrics.totalReach || 0
         },
         recentPosts,
         postsByPlatform: postsByPlatform || []
