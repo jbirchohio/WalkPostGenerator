@@ -235,9 +235,44 @@ export default function Analytics() {
   // Prepare data for charts
   const engagementData = [
     { name: 'Likes', value: analyticsData.metrics.totalLikes },
-    { name: 'Shares', value: analyticsData.metrics.totalShares },
     { name: 'Comments', value: analyticsData.metrics.totalComments },
+    { name: 'Shares', value: analyticsData.metrics.totalShares },
+    { name: 'Saves', value: analyticsData.metrics.totalSaved || 0 },
     { name: 'Clicks', value: analyticsData.metrics.totalClicks },
+  ];
+  
+  // Comprehensive metrics data for the stacked bar chart
+  const metricsData = [
+    { 
+      name: 'Engagement', 
+      facebook: analyticsData.metrics.facebookEngagement || 0,
+      instagram: analyticsData.metrics.instagramEngagement || 0,
+    },
+    { 
+      name: 'Impressions', 
+      facebook: analyticsData.metrics.facebookImpressions || 0,
+      instagram: analyticsData.metrics.instagramImpressions || 0,
+    },
+    { 
+      name: 'Reach', 
+      facebook: analyticsData.metrics.facebookReach || 0,
+      instagram: analyticsData.metrics.instagramReach || 0,
+    },
+    { 
+      name: 'Likes', 
+      facebook: analyticsData.metrics.facebookLikes || 0,
+      instagram: analyticsData.metrics.instagramLikes || 0,
+    },
+    { 
+      name: 'Comments', 
+      facebook: analyticsData.metrics.facebookComments || 0,
+      instagram: analyticsData.metrics.instagramComments || 0,
+    },
+    { 
+      name: 'Shares', 
+      facebook: analyticsData.metrics.facebookShares || 0,
+      instagram: analyticsData.metrics.instagramShares || 0,
+    },
   ];
 
   const platformData = analyticsData.postsByPlatform.map(item => ({
