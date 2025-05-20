@@ -253,6 +253,17 @@ export async function savePostAnalytics(
       .values(analyticsData)
       .returning();
     
+    // Extract reach data from metadata if it exists
+    let reach = 0;
+    if (analyticsData.metadata) {
+      // Check if we have reach data in the metadata
+      if (analyticsData.metadata.reach) {
+        reach = parseInt(analyticsData.metadata.reach.toString()) || 0;
+      }
+    }
+    
+    console.log(`Updating post ${analyticsData.postId} with reach: ${reach}, platform: ${analyticsData.platform}`);
+    
     // Update the post with the latest engagement metrics
     await db
       .update(posts)
@@ -262,7 +273,9 @@ export async function savePostAnalytics(
         shares: analyticsData.shares,
         comments: analyticsData.comments,
         clicks: analyticsData.clicks,
-        engagement: analyticsData.likes + analyticsData.shares + analyticsData.comments + analyticsData.clicks
+        reach: reach, // Add reach value
+        engagement: analyticsData.likes + analyticsData.shares + analyticsData.comments + analyticsData.clicks,
+        lastAnalyticsFetch: new Date() // Update analytics timestamp
       })
       .where(eq(posts.id, analyticsData.postId));
     
@@ -417,17 +430,43 @@ export async function getAnalyticsSummary(): Promise<{ success: boolean; summary
     // Get posts by platform count with a simplified approach
     // Since jsonb '?' operator doesn't work in all PostgreSQL versions,
     // we'll manually count with a direct query
+    // Count posts by platform properly using the publishedTo array
     const facebookCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(posts)
-      .where(sql`${posts.publishStatus} = 'published'`)
+      .where(sql`${posts.publishStatus} = 'published' AND ${posts.facebookPostId} IS NOT NULL`)
       .then(res => Number(res[0].count));
       
     const instagramCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(posts)
-      .where(sql`${posts.publishStatus} = 'published'`)
+      .where(sql`${posts.publishStatus} = 'published' AND ${posts.instagramPostId} IS NOT NULL`)
       .then(res => Number(res[0].count));
+    
+    // Get platform-specific metrics
+    const [facebookMetrics] = await db
+      .select({
+        impressions: sql<number>`sum(${posts.impressions})`,
+        likes: sql<number>`sum(${posts.likes})`,
+        shares: sql<number>`sum(${posts.shares})`,
+        comments: sql<number>`sum(${posts.comments})`,
+        reach: sql<number>`sum(${posts.reach})`,
+        engagement: sql<number>`sum(${posts.engagement})`
+      })
+      .from(posts)
+      .where(sql`${posts.facebookPostId} IS NOT NULL`);
+      
+    const [instagramMetrics] = await db
+      .select({
+        impressions: sql<number>`sum(${posts.impressions})`,
+        likes: sql<number>`sum(${posts.likes})`,
+        shares: sql<number>`sum(${posts.shares})`,
+        comments: sql<number>`sum(${posts.comments})`,
+        reach: sql<number>`sum(${posts.reach})`,
+        engagement: sql<number>`sum(${posts.engagement})`
+      })
+      .from(posts)
+      .where(sql`${posts.instagramPostId} IS NOT NULL`);
       
     // Create the platform summary
     const postsByPlatform = [
@@ -442,13 +481,33 @@ export async function getAnalyticsSummary(): Promise<{ success: boolean; summary
         publishedPosts: postCounts.published || 0,
         scheduledPosts: postCounts.scheduled || 0,
         metrics: {
+          // Global metrics
           totalImpressions: metrics.totalImpressions || 0,
           totalLikes: metrics.totalLikes || 0,
           totalShares: metrics.totalShares || 0,
           totalComments: metrics.totalComments || 0,
           totalClicks: metrics.totalClicks || 0,
           totalEngagement: metrics.totalEngagement || 0,
-          totalReach: metrics.totalReach || 0
+          totalReach: metrics.totalReach || 0,
+          
+          // Facebook metrics
+          facebookImpressions: facebookMetrics?.impressions || 0,
+          facebookLikes: facebookMetrics?.likes || 0,
+          facebookShares: facebookMetrics?.shares || 0,
+          facebookComments: facebookMetrics?.comments || 0,
+          facebookReach: facebookMetrics?.reach || 0,
+          facebookEngagement: facebookMetrics?.engagement || 0,
+          
+          // Instagram metrics
+          instagramImpressions: instagramMetrics?.impressions || 0,
+          instagramLikes: instagramMetrics?.likes || 0,
+          instagramShares: instagramMetrics?.shares || 0,
+          instagramComments: instagramMetrics?.comments || 0,
+          instagramReach: instagramMetrics?.reach || 0,
+          instagramEngagement: instagramMetrics?.engagement || 0,
+          
+          // Additional metrics
+          totalSaved: 0 // This would need to come from specific Instagram metrics
         },
         recentPosts,
         postsByPlatform: postsByPlatform || []
