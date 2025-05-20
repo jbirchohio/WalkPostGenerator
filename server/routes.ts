@@ -226,6 +226,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New endpoint for posting to both Facebook and Instagram simultaneously
+  app.post("/api/post-to-all", async (req: Request, res: Response) => {
+    try {
+      // Check credentials for both platforms
+      if (!process.env.FACEBOOK_ACCESS_TOKEN) {
+        return res.status(401).json({
+          success: false,
+          message: "Facebook credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN."
+        });
+      }
+      
+      if (!process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+        return res.status(401).json({
+          success: false,
+          message: "Instagram credentials are not configured. Please provide INSTAGRAM_BUSINESS_ACCOUNT_ID."
+        });
+      }
+      
+      // Validate the request
+      const result = facebookPostSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid request data", 
+          errors: result.error.format() 
+        });
+      }
+      
+      // Instagram requires an image for posting
+      if (!result.data.image) {
+        return res.status(400).json({
+          success: false,
+          message: "An image is required when posting to Instagram"
+        });
+      }
+      
+      // Process image first - we need a URL that works for both platforms
+      let imageUrl;
+      try {
+        if (result.data.image.startsWith('data:')) {
+          // For cross-platform posting, we'll use Cloudinary to ensure compatibility
+          imageUrl = await uploadToCloudinary(result.data.image);
+          console.log("Image uploaded to Cloudinary:", imageUrl);
+        } else {
+          // If it's already a URL, use it directly
+          imageUrl = result.data.image;
+        }
+      } catch (err: any) {
+        console.error("Error processing image for multi-platform post:", err);
+        return res.status(500).json({
+          success: false,
+          message: "Error processing image for cross-platform post",
+          error: err.message || "Unknown error"
+        });
+      }
+      
+      // Create post data with the processed image URL
+      const postData = {
+        ...result.data,
+        image: imageUrl
+      };
+      
+      // Post to both platforms and collect results
+      const results = {
+        facebook: null as any,
+        instagram: null as any,
+        success: false,
+        postId: null as number | null,
+        platforms: [] as string[]
+      };
+      
+      // Post to Facebook
+      console.log("Posting to Facebook...");
+      const fbResponse = await postToFacebook(postData);
+      results.facebook = fbResponse;
+      
+      // Post to Instagram
+      console.log("Posting to Instagram...");
+      const igResponse = await postToInstagram(postData);
+      results.instagram = igResponse;
+      
+      // Save to history with both platform IDs if at least one was successful
+      if ((fbResponse.success && fbResponse.id) || (igResponse.success && igResponse.id)) {
+        const publishedTo = [];
+        if (fbResponse.success && fbResponse.id) publishedTo.push("facebook");
+        if (igResponse.success && igResponse.id) publishedTo.push("instagram");
+        
+        try {
+          console.log("Saving cross-platform post with IDs:", {
+            facebook: fbResponse.id,
+            instagram: igResponse.id
+          });
+          
+          const saveResult = await savePost({
+            content: postData.message,
+            image: postData.image,
+            postType: req.body.postType || "general",
+            productName: req.body.productName || null,
+            publishStatus: "published",
+            publishedTo,
+            facebookPostId: fbResponse.success ? fbResponse.id : null,
+            instagramPostId: igResponse.success ? igResponse.id : null
+          });
+          
+          console.log("Post saved to history with ID:", saveResult.id);
+          results.success = true;
+          results.postId = saveResult.id;
+          results.platforms = publishedTo;
+        } catch (error: any) {
+          console.warn("Failed to save post to history after multi-platform posting:", error);
+        }
+      } else {
+        // Return error if both posts failed
+        return res.status(500).json({
+          success: false,
+          message: "Failed to post to any platform",
+          facebook: fbResponse,
+          instagram: igResponse
+        });
+      }
+      
+      return res.json(results);
+      
+    } catch (error: any) {
+      console.error("Error in multi-platform posting:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Error posting to multiple platforms", 
+        error: error.message 
+      });
+    }
+  });
+
   // Register image upload routes
   registerImageRoutes(app);
   
