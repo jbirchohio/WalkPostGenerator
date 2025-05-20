@@ -291,12 +291,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Post to both platforms and collect results
-      const results = {
-        facebook: null as any,
-        instagram: null as any,
+      interface MultiPlatformResult {
+        facebook: any;
+        instagram: any;
+        success: boolean;
+        postId: number | null;
+        platforms: string[];
+      }
+      
+      const results: MultiPlatformResult = {
+        facebook: null,
+        instagram: null,
         success: false,
-        postId: null as number | null,
-        platforms: [] as string[]
+        postId: null,
+        platforms: []
       };
       
       // Post to Facebook
@@ -334,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log("Post saved to history with ID:", saveResult.id);
           results.success = true;
-          results.postId = saveResult.id;
+          results.postId = saveResult.id || null;
           results.platforms = publishedTo;
         } catch (error: any) {
           console.warn("Failed to save post to history after multi-platform posting:", error);
