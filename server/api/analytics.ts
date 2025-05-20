@@ -37,8 +37,31 @@ export async function fetchFacebookPostAnalytics(postId: string) {
       try {
         console.log(`Trying to get basic post data instead for: ${postId}`);
         const postApiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${postId}`;
+        
+        // Get post type first so we can adapt our fields request
+        const typeResponse = await fetch(`${postApiUrl}?fields=type&access_token=${FACEBOOK_ACCESS_TOKEN}`);
+        const typeData = await typeResponse.json() as any;
+        
+        if (typeData.error) {
+          console.error('Error determining post type:', typeData.error);
+          throw new Error(`Failed to determine post type: ${typeData.error.message}`);
+        }
+        
+        const postType = typeData.type || 'status';
+        console.log(`Post type is: ${postType}`);
+        
+        // Adjust fields based on post type
+        let fields = 'likes.summary(true),comments.summary(true)';
+        if (postType === 'photo' || postType === 'video') {
+          // Photo and video posts don't have shares field
+          fields += ',reactions.summary(true)';
+        } else {
+          // Other post types can have shares
+          fields += ',shares,reactions.summary(true)';
+        }
+        
         const postParams = new URLSearchParams({
-          fields: 'likes.summary(true),comments.summary(true),shares',
+          fields,
           access_token: FACEBOOK_ACCESS_TOKEN
         });
         
@@ -46,11 +69,11 @@ export async function fetchFacebookPostAnalytics(postId: string) {
         const postData = await postResponse.json() as any;
         
         if (!postData.error) {
-          console.log('Got basic post engagement data:', postData);
+          console.log('Got basic post engagement data for post type:', postType);
           
           // Create simple metrics from the basic post data
           const metrics = {
-            likes: postData.likes?.summary?.total_count || 0,
+            likes: postData.likes?.summary?.total_count || postData.reactions?.summary?.total_count || 0,
             comments: postData.comments?.summary?.total_count || 0,
             shares: postData.shares?.count || 0,
             impressions: 0,
