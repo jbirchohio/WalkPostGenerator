@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { Post } from '@shared/schema';
+import { Post, CombinedAnalytics, PlatformAnalytics } from '@shared/schema';
 
 // Facebook Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
@@ -286,7 +286,8 @@ export async function fetchCombinedPostAnalytics(post: Post) {
       publishedTo: post.publishedTo
     });
     
-    const analytics = {
+    // Create a combined analytics object using our defined interface
+    const analytics: CombinedAnalytics = {
       impressions: 0,
       likes: 0,
       comments: 0,
@@ -294,7 +295,7 @@ export async function fetchCombinedPostAnalytics(post: Post) {
       engagement: 0,
       saved: 0,
       clicks: 0,
-      platforms: {} as any
+      platforms: {}
     };
     
     let hasFacebookData = false;

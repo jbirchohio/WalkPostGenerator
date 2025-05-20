@@ -79,6 +79,58 @@ export const insertPostAnalyticsSchema = createInsertSchema(postAnalytics).omit(
 export type InsertPostAnalytics = z.infer<typeof insertPostAnalyticsSchema>;
 export type PostAnalytics = typeof postAnalytics.$inferSelect;
 
+// Define the interface for platform-specific metrics
+export interface PlatformAnalytics {
+  // Base metrics that all platforms have
+  impressions: number;
+  engagement: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  // Optional metrics that some platforms might have
+  reach?: number;
+  clicks?: number;
+  saved?: number;
+}
+
+// Define the combined analytics interface with platform-specific breakdowns
+export interface CombinedAnalytics {
+  // Total metrics (combined across platforms)
+  impressions: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  engagement: number;
+  saved: number;
+  clicks: number;
+  totalSaved?: number;
+  totalReach?: number;
+  
+  // Platform-specific metrics breakdown
+  platforms: {
+    facebook?: PlatformAnalytics;
+    instagram?: PlatformAnalytics;
+    [key: string]: PlatformAnalytics | undefined;
+  };
+  
+  // Individual platform metrics for easier access
+  facebookImpressions?: number;
+  facebookReach?: number;
+  facebookLikes?: number;
+  facebookComments?: number;
+  facebookShares?: number;
+  facebookClicks?: number;
+  facebookEngagement?: number;
+  
+  instagramImpressions?: number;
+  instagramReach?: number;
+  instagramLikes?: number;
+  instagramComments?: number;
+  instagramShares?: number;
+  instagramSaved?: number;
+  instagramEngagement?: number;
+}
+
 // Define the schema for post generation
 export const postGenerationSchema = z.object({
   productName: z.string().optional(),
