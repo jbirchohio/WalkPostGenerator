@@ -8,7 +8,7 @@ const openai = new OpenAI({
 });
 
 // The OpenAI Assistant ID (if needed for future use)
-const ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID || "asst_Tjl2yMLdhaOav1RMT6gAC8so";
+const ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID;
 
 /**
  * Generate a social media post for A Walk in the Park Cafe

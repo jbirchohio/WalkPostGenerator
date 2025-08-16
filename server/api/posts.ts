@@ -62,7 +62,7 @@ export async function updatePost(
     const data = {
       ...updateData,
       updatedAt: new Date(),
-    };
+    } as any;
     
     const [updated] = await db
       .update(posts)
@@ -111,7 +111,7 @@ export async function getPosts(
   const { postType, publishStatus } = queryParams;
   try {
     // Build query conditions
-    let query = db.select().from(posts);
+    let query = db.select().from(posts) as any;
     
     if (postType) {
       query = query.where(eq(posts.postType, postType));
@@ -122,9 +122,9 @@ export async function getPosts(
     }
     
     // Apply sorting
-    if (sortBy && posts[sortBy as keyof typeof posts]) {
+    if (sortBy && (posts as any)[sortBy]) {
       const orderFn = sortOrder === 'asc' ? asc : desc;
-      query = query.orderBy(orderFn(posts[sortBy as keyof typeof posts]));
+      query = query.orderBy(orderFn((posts as any)[sortBy]));
     } else {
       // Default sort by createdAt desc
       query = query.orderBy(desc(posts.createdAt));
@@ -137,11 +137,18 @@ export async function getPosts(
     const results = await query;
     
     // Get total count for pagination
-    const [{ count }] = await db
+    let countQuery = db
       .select({ count: sql<number>`count(*)` })
-      .from(posts)
-      .where(postType ? eq(posts.postType, postType) : undefined)
-      .where(publishStatus ? eq(posts.publishStatus, publishStatus) : undefined);
+      .from(posts) as any;
+    
+    if (postType) {
+      countQuery = countQuery.where(eq(posts.postType, postType));
+    }
+    if (publishStatus) {
+      countQuery = countQuery.where(eq(posts.publishStatus, publishStatus));
+    }
+    
+    const [{ count }] = await countQuery;
     
     return {
       success: true,
@@ -231,7 +238,7 @@ export async function deletePost(postId: number): Promise<{ success: boolean; er
  * Save analytics data for a post
  */
 export async function savePostAnalytics(
-  analyticsData: InsertPostAnalytics
+  analyticsData: any
 ): Promise<{ success: boolean; id?: number; error?: string }> {
   try {
     // Check if the post exists
@@ -268,15 +275,15 @@ export async function savePostAnalytics(
     await db
       .update(posts)
       .set({
-        impressions: analyticsData.impressions,
-        likes: analyticsData.likes,
-        shares: analyticsData.shares,
-        comments: analyticsData.comments,
-        clicks: analyticsData.clicks,
+        impressions: analyticsData.impressions || 0,
+        likes: analyticsData.likes || 0,
+        shares: analyticsData.shares || 0,
+        comments: analyticsData.comments || 0,
+        clicks: analyticsData.clicks || 0,
         reach: reach, // Add reach value
-        engagement: analyticsData.likes + analyticsData.shares + analyticsData.comments + analyticsData.clicks,
+        engagement: (analyticsData.likes || 0) + (analyticsData.shares || 0) + (analyticsData.comments || 0) + (analyticsData.clicks || 0),
         lastAnalyticsFetch: new Date() // Update analytics timestamp
-      })
+      } as any)
       .where(eq(posts.id, analyticsData.postId));
     
     return {

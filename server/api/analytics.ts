@@ -269,8 +269,8 @@ export async function fetchInstagramPostAnalytics(postId: string) {
         const response = await fetch(`${consolidatedInsightsUrl}?${params.toString()}`);
         const data = await response.json();
         
-        if (!data.error && data.data) {
-          console.log('Got additional insights data:', data.data);
+        if (!(data as any).error && (data as any).data) {
+          console.log('Got additional insights data:', (data as any).data);
         }
       } catch (error) {
         console.error('Error getting additional insights:', error);

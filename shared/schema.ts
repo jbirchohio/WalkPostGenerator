@@ -52,6 +52,10 @@ export const insertPostSchema = createInsertSchema(posts).omit({
   shares: true,
   comments: true,
   impressions: true,
+  reach: true,
+  facebookPostId: true,
+  instagramPostId: true,
+  lastAnalyticsFetch: true,
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;

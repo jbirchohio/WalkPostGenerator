@@ -1,10 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
-
-// Configure websocket for NeonDB
-neonConfig.webSocketConstructor = ws;
 
 // Check for database URL
 if (!process.env.DATABASE_URL) {
@@ -13,8 +9,11 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create database connection pool
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Create database connection pool for Railway PostgreSQL
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 // Initialize Drizzle with the database connection and schema
 export const db = drizzle(pool, { schema });

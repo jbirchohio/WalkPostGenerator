@@ -254,7 +254,7 @@ export default function Analytics() {
     { name: 'Likes', value: analyticsData.metrics.totalLikes },
     { name: 'Comments', value: analyticsData.metrics.totalComments },
     { name: 'Shares', value: analyticsData.metrics.totalShares },
-    { name: 'Saves', value: analyticsData.metrics.totalSaved || 0 },
+    { name: 'Saves', value: (analyticsData.metrics as any).totalSaved || 0 },
     { name: 'Clicks', value: analyticsData.metrics.totalClicks },
   ];
   
@@ -297,33 +297,33 @@ export default function Analytics() {
   const metricsData = [
     { 
       name: 'Engagement', 
-      facebook: analyticsData.metrics.facebookEngagement || mockMetricsData[0].facebook,
-      instagram: analyticsData.metrics.instagramEngagement || mockMetricsData[0].instagram,
+      facebook: (analyticsData.metrics as any).facebookEngagement || mockMetricsData[0].facebook,
+      instagram: (analyticsData.metrics as any).instagramEngagement || mockMetricsData[0].instagram,
     },
     { 
       name: 'Impressions', 
-      facebook: analyticsData.metrics.facebookImpressions || mockMetricsData[1].facebook,
-      instagram: analyticsData.metrics.instagramImpressions || mockMetricsData[1].instagram,
+      facebook: (analyticsData.metrics as any).facebookImpressions || mockMetricsData[1].facebook,
+      instagram: (analyticsData.metrics as any).instagramImpressions || mockMetricsData[1].instagram,
     },
     { 
       name: 'Reach', 
-      facebook: analyticsData.metrics.facebookReach || mockMetricsData[2].facebook,
-      instagram: analyticsData.metrics.instagramReach || mockMetricsData[2].instagram,
+      facebook: (analyticsData.metrics as any).facebookReach || mockMetricsData[2].facebook,
+      instagram: (analyticsData.metrics as any).instagramReach || mockMetricsData[2].instagram,
     },
     { 
       name: 'Likes', 
-      facebook: analyticsData.metrics.facebookLikes || mockMetricsData[3].facebook,
-      instagram: analyticsData.metrics.instagramLikes || mockMetricsData[3].instagram,
+      facebook: (analyticsData.metrics as any).facebookLikes || mockMetricsData[3].facebook,
+      instagram: (analyticsData.metrics as any).instagramLikes || mockMetricsData[3].instagram,
     },
     { 
       name: 'Comments', 
-      facebook: analyticsData.metrics.facebookComments || mockMetricsData[4].facebook,
-      instagram: analyticsData.metrics.instagramComments || mockMetricsData[4].instagram,
+      facebook: (analyticsData.metrics as any).facebookComments || mockMetricsData[4].facebook,
+      instagram: (analyticsData.metrics as any).instagramComments || mockMetricsData[4].instagram,
     },
     { 
       name: 'Shares', 
-      facebook: analyticsData.metrics.facebookShares || mockMetricsData[5].facebook,
-      instagram: analyticsData.metrics.instagramShares || mockMetricsData[5].instagram,
+      facebook: (analyticsData.metrics as any).facebookShares || mockMetricsData[5].facebook,
+      instagram: (analyticsData.metrics as any).instagramShares || mockMetricsData[5].instagram,
     },
   ];
 
@@ -420,7 +420,7 @@ export default function Analytics() {
                 <CardDescription>Unique viewers</CardDescription>
               </CardHeader>
               <CardContent className="py-2 px-6">
-                <p className="text-3xl font-bold">{formatNumber(analyticsData.metrics.totalReach || 0)}</p>
+                <p className="text-3xl font-bold">{formatNumber((analyticsData.metrics as any).totalReach || 0)}</p>
               </CardContent>
             </Card>
             
