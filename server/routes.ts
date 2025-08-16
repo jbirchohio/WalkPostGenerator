@@ -233,11 +233,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Check credentials for both platforms
       // Token is now managed automatically via database/file storage
-        return res.status(401).json({
-          success: false,
-          message: "Facebook credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN."
-        });
-      }
       
       if (!process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) {
         return res.status(401).json({
