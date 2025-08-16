@@ -67,9 +67,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract only the fields needed for Facebook posting
+      // Convert null to undefined for optional fields
       const facebookData = {
         message: req.body.message,
-        image: req.body.image
+        image: req.body.image || undefined
       };
       
       // Validate the request
@@ -155,9 +156,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract only the fields needed for Instagram posting
+      // Convert null to undefined for optional fields
       const instagramData = {
         message: req.body.message,
-        image: req.body.image
+        image: req.body.image || undefined
       };
       
       // Validate the request
@@ -254,9 +256,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract only the fields needed for social media posting
+      // Convert null to undefined for optional fields
       const socialData = {
         message: req.body.message,
-        image: req.body.image
+        image: req.body.image || undefined
       };
       
       // Validate the request
