@@ -66,8 +66,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Extract only the fields needed for Facebook posting
+      const facebookData = {
+        message: req.body.message,
+        image: req.body.image
+      };
+      
       // Validate the request
-      const result = facebookPostSchema.safeParse(req.body);
+      const result = facebookPostSchema.safeParse(facebookData);
       
       if (!result.success) {
         return res.status(400).json({ 
@@ -144,12 +150,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) {
         return res.status(401).json({
           success: false,
-          message: "Instagram credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID."
+          message: "Instagram credentials are not configured. Please provide INSTAGRAM_BUSINESS_ACCOUNT_ID."
         });
       }
       
+      // Extract only the fields needed for Instagram posting
+      const instagramData = {
+        message: req.body.message,
+        image: req.body.image
+      };
+      
       // Validate the request
-      const result = facebookPostSchema.safeParse(req.body);
+      const result = facebookPostSchema.safeParse(instagramData);
       
       if (!result.success) {
         return res.status(400).json({ 
@@ -241,8 +253,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Extract only the fields needed for social media posting
+      const socialData = {
+        message: req.body.message,
+        image: req.body.image
+      };
+      
       // Validate the request
-      const result = facebookPostSchema.safeParse(req.body);
+      const result = facebookPostSchema.safeParse(socialData);
       
       if (!result.success) {
         return res.status(400).json({ 
