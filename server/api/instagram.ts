@@ -3,12 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { FacebookPostRequest, SocialMediaResponse } from '@shared/schema';
 import { uploadToCloudinary } from './cloudinary';
-
+import { getValidToken } from './facebook-auth';
 
 // Instagram Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
 const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
-const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 
 /**
  * Posts an image to Instagram with caption
@@ -18,9 +17,12 @@ const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
  */
 export async function postToInstagram(postData: FacebookPostRequest): Promise<SocialMediaResponse> {
   try {
-    if (!INSTAGRAM_BUSINESS_ACCOUNT_ID || !FACEBOOK_ACCESS_TOKEN) {
-      throw new Error('Instagram credentials not configured');
+    if (!INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+      throw new Error('Instagram Business Account ID not configured');
     }
+
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
 
     // Instagram requires an image, cannot post text-only
     if (!postData.image) {
@@ -70,10 +72,13 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
   try {
     // Instagram has a two-step posting process
     // First, verify we have the correct credentials
-    if (!INSTAGRAM_BUSINESS_ACCOUNT_ID || !FACEBOOK_ACCESS_TOKEN) {
-      console.error('Instagram credentials not configured properly');
+    if (!INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+      console.error('Instagram Business Account ID not configured');
       return null;
     }
+
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
     
     console.log('Creating Instagram media container with the following:');
     console.log('- Instagram Business Account ID:', INSTAGRAM_BUSINESS_ACCOUNT_ID);
@@ -88,7 +93,7 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
     // For Instagram, we need proper params with the image URL
     const params = new URLSearchParams();
     params.append('caption', caption);
-    params.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    params.append('access_token', accessToken);
     params.append('image_url', imageUrl);
     
     console.log("Making API request to Instagram for media container creation...");
@@ -128,11 +133,14 @@ async function createMediaContainer(imageUrl: string, caption: string): Promise<
  */
 async function publishMedia(containerId: string): Promise<SocialMediaResponse> {
   try {
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
+    
     const publishUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media_publish`;
     
     const params = new URLSearchParams();
     params.append('creation_id', containerId);
-    params.append('access_token', FACEBOOK_ACCESS_TOKEN!);
+    params.append('access_token', accessToken);
     
     const response = await fetch(publishUrl, {
       method: 'POST',

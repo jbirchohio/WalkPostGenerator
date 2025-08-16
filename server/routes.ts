@@ -8,6 +8,7 @@ import { postToInstagram } from "./api/instagram";
 import { registerImageRoutes } from "./routes-images";
 import { saveBase64ImageAndGetUrl } from "./api/upload";
 import { uploadToCloudinary } from "./api/cloudinary";
+import { exchangeToken, getTokenStatus, refreshToken } from "./api/facebook-token";
 import { 
   savePost, 
   updatePost, 
@@ -798,6 +799,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Facebook Token Management Routes
+  
+  // Exchange short-lived token for long-lived token
+  app.post("/api/facebook/exchange-token", exchangeToken);
+  
+  // Get current token status
+  app.get("/api/facebook/token-status", getTokenStatus);
+  
+  // Manually refresh token
+  app.post("/api/facebook/refresh-token", refreshToken);
   
   const httpServer = createServer(app);
 

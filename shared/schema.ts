@@ -84,6 +84,26 @@ export const insertPostAnalyticsSchema = createInsertSchema(postAnalytics).omit(
 export type InsertPostAnalytics = z.infer<typeof insertPostAnalyticsSchema>;
 export type PostAnalytics = typeof postAnalytics.$inferSelect;
 
+// Facebook Tokens Table - Store long-lived Facebook access tokens
+export const facebookTokens = pgTable("facebook_tokens", {
+  id: serial("id").primaryKey(),
+  accessToken: text("access_token").notNull(),
+  tokenType: text("token_type").default("bearer"),
+  expiresAt: timestamp("expires_at").notNull(),
+  lastRefreshed: timestamp("last_refreshed").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const insertFacebookTokenSchema = createInsertSchema(facebookTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFacebookToken = z.infer<typeof insertFacebookTokenSchema>;
+export type FacebookToken = typeof facebookTokens.$inferSelect;
+
 // Define the interface for platform-specific metrics
 export interface PlatformAnalytics {
   // Base metrics that all platforms have

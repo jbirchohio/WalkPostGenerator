@@ -1,10 +1,10 @@
 import fetch from 'node-fetch';
 import { Post, CombinedAnalytics, PlatformAnalytics } from '@shared/schema';
+import { getValidToken } from './facebook-auth';
 
 // Facebook Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
 const FACEBOOK_PAGE_ID = process.env.FACEBOOK_PAGE_ID || '1640489706269205'; // Default page ID if not set in env
-const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
 
 /**
@@ -28,9 +28,8 @@ function formatFacebookPostId(postId: string): string {
  */
 export async function fetchFacebookPostAnalytics(postId: string) {
   try {
-    if (!FACEBOOK_ACCESS_TOKEN) {
-      throw new Error('Facebook access token not configured');
-    }
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
     
     // Format the postId properly with the page ID 
     const fullPostId = formatFacebookPostId(postId);
@@ -42,7 +41,7 @@ export async function fetchFacebookPostAnalytics(postId: string) {
     const fields = 'reactions.summary(true),comments.summary(true),message,created_time';
     const postParams = new URLSearchParams({
       fields,
-      access_token: FACEBOOK_ACCESS_TOKEN
+      access_token: accessToken
     });
     
     console.log(`Requesting basic post data with fields: ${fields}`);
@@ -55,7 +54,7 @@ export async function fetchFacebookPostAnalytics(postId: string) {
       // Try to get shares count separately as a fallback
       try {
         console.log(`Trying to get shares count for post: ${fullPostId}`);
-        const sharesUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}?fields=shares&access_token=${FACEBOOK_ACCESS_TOKEN}`;
+        const sharesUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}?fields=shares&access_token=${accessToken}`;
         const sharesResponse = await fetch(sharesUrl);
         const sharesData = await sharesResponse.json() as any;
         
@@ -115,7 +114,7 @@ export async function fetchFacebookPostAnalytics(postId: string) {
     
     // Try to get shares separately (this is done in a separate request as recommended)
     try {
-      const sharesUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}?fields=shares&access_token=${FACEBOOK_ACCESS_TOKEN}`;
+      const sharesUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${fullPostId}?fields=shares&access_token=${accessToken}`;
       const sharesResponse = await fetch(sharesUrl);
       const sharesData = await sharesResponse.json() as any;
       
@@ -148,9 +147,12 @@ export async function fetchFacebookPostAnalytics(postId: string) {
  */
 export async function fetchInstagramPostAnalytics(postId: string) {
   try {
-    if (!FACEBOOK_ACCESS_TOKEN || !INSTAGRAM_BUSINESS_ACCOUNT_ID) {
-      throw new Error('Instagram credentials not configured');
+    if (!INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+      throw new Error('Instagram Business Account ID not configured');
     }
+    
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
 
     console.log(`Fetching Instagram analytics for post ID: ${postId}`);
     
@@ -173,7 +175,7 @@ export async function fetchInstagramPostAnalytics(postId: string) {
     const mediaInfoUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${mediaId}`;
     const mediaInfoParams = new URLSearchParams({
       fields: 'media_type,like_count,comments_count,timestamp',
-      access_token: FACEBOOK_ACCESS_TOKEN
+      access_token: accessToken
     });
     
     try {
@@ -209,7 +211,7 @@ export async function fetchInstagramPostAnalytics(postId: string) {
           // Using a properly formatted direct call for better reliability
           const params = new URLSearchParams({
             metric: validMetrics.join(','),
-            access_token: FACEBOOK_ACCESS_TOKEN
+            access_token: accessToken
           });
           
           console.log(`Fetching Instagram media insights from: ${insightsApiUrl}`);
@@ -262,7 +264,7 @@ export async function fetchInstagramPostAnalytics(postId: string) {
         const params = new URLSearchParams({
           metric: 'reach,impressions,engagement,saved',
           period: 'lifetime',
-          access_token: FACEBOOK_ACCESS_TOKEN
+          access_token: accessToken
         });
         
         console.log(`Requesting additional insights for Instagram post: ${postId}`);
@@ -603,15 +605,18 @@ export async function fetchAccountAnalytics() {
  */
 async function fetchFacebookPageInsights() {
   try {
-    if (!FACEBOOK_ACCESS_TOKEN || !FACEBOOK_PAGE_ID) {
-      throw new Error('Facebook credentials not configured');
+    if (!FACEBOOK_PAGE_ID) {
+      throw new Error('Facebook Page ID not configured');
     }
+    
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
 
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${FACEBOOK_PAGE_ID}/insights`;
     const params = new URLSearchParams({
       metric: 'page_impressions,page_engaged_users,page_post_engagements',
       period: 'day',
-      access_token: FACEBOOK_ACCESS_TOKEN
+      access_token: accessToken
     });
 
     const response = await fetch(`${apiUrl}?${params.toString()}`);
@@ -667,15 +672,18 @@ function processFacebookPageInsights(insightsData: any[]) {
  */
 async function fetchInstagramAccountInsights() {
   try {
-    if (!FACEBOOK_ACCESS_TOKEN || !INSTAGRAM_BUSINESS_ACCOUNT_ID) {
-      throw new Error('Instagram credentials not configured');
+    if (!INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+      throw new Error('Instagram Business Account ID not configured');
     }
+    
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
 
     const apiUrl = `https://graph.facebook.com/${FACEBOOK_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insights`;
     const params = new URLSearchParams({
       metric: 'impressions,reach,profile_views',
       period: 'day',
-      access_token: FACEBOOK_ACCESS_TOKEN
+      access_token: accessToken
     });
 
     const response = await fetch(`${apiUrl}?${params.toString()}`);

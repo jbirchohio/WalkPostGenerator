@@ -3,11 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import { FacebookPostRequest, SocialMediaResponse } from '@shared/schema';
+import { getValidToken } from './facebook-auth';
 
 // Facebook Graph API details
 const FACEBOOK_API_VERSION = 'v18.0'; // Latest version as of 2024
 const FACEBOOK_PAGE_ID = process.env.FACEBOOK_PAGE_ID;
-const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
 
 /**
@@ -16,9 +16,12 @@ const INSTAGRAM_BUSINESS_ACCOUNT_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
  */
 export async function postToFacebook(postData: FacebookPostRequest): Promise<SocialMediaResponse> {
   try {
-    if (!FACEBOOK_PAGE_ID || !FACEBOOK_ACCESS_TOKEN) {
-      throw new Error('Facebook credentials not configured');
+    if (!FACEBOOK_PAGE_ID) {
+      throw new Error('Facebook Page ID not configured');
     }
+
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
 
     console.log("Attempting to post to Facebook Page ID:", FACEBOOK_PAGE_ID);
 
@@ -32,7 +35,7 @@ export async function postToFacebook(postData: FacebookPostRequest): Promise<Soc
     
     const params = new URLSearchParams();
     params.append('message', postData.message);
-    params.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    params.append('access_token', accessToken);
 
     // Post text-only message to Facebook
     const response = await fetch(apiUrl, {
@@ -84,9 +87,12 @@ export async function postToFacebook(postData: FacebookPostRequest): Promise<Soc
  */
 async function postWithImage(postData: FacebookPostRequest): Promise<SocialMediaResponse> {
   try {
-    if (!FACEBOOK_PAGE_ID || !FACEBOOK_ACCESS_TOKEN) {
-      throw new Error('Facebook credentials not configured');
+    if (!FACEBOOK_PAGE_ID) {
+      throw new Error('Facebook Page ID not configured');
     }
+
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
 
     // We need a publicly accessible URL for the image
     let imageUrl;
@@ -130,7 +136,7 @@ async function postWithImage(postData: FacebookPostRequest): Promise<SocialMedia
     
     const params = new URLSearchParams();
     params.append('message', postData.message);
-    params.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    params.append('access_token', accessToken);
     params.append('url', publicImageUrl); // Use the public URL for the image
     
     // Post to Facebook API
@@ -235,12 +241,10 @@ async function uploadImageToFacebook(
     // For node environments, we need to use URLSearchParams instead of FormData
     const params = new URLSearchParams();
     
-    // Make sure we have the access token
-    if (!FACEBOOK_ACCESS_TOKEN) {
-      return { error: 'Facebook access token is not configured' };
-    }
+    // Get a valid token (will auto-refresh if needed)
+    const accessToken = await getValidToken();
     
-    params.append('access_token', FACEBOOK_ACCESS_TOKEN);
+    params.append('access_token', accessToken);
     params.append('message', message);
     
     // We'll use the url parameter to pass a data URL directly
