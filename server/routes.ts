@@ -59,10 +59,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/facebook/post", async (req: Request, res: Response) => {
     try {
       // Check Facebook credentials first
-      if (!process.env.FACEBOOK_ACCESS_TOKEN || !process.env.FACEBOOK_PAGE_ID) {
+      if (!process.env.FACEBOOK_PAGE_ID) {
         return res.status(401).json({
           success: false,
-          message: "Facebook credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN and FACEBOOK_PAGE_ID."
+          message: "Facebook Page ID is not configured. Please provide FACEBOOK_PAGE_ID."
         });
       }
       
@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/instagram/post", async (req: Request, res: Response) => {
     try {
       // Check Instagram credentials first
-      if (!process.env.FACEBOOK_ACCESS_TOKEN || !process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+      if (!process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) {
         return res.status(401).json({
           success: false,
           message: "Instagram credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID."
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/post-to-all", async (req: Request, res: Response) => {
     try {
       // Check credentials for both platforms
-      if (!process.env.FACEBOOK_ACCESS_TOKEN) {
+      // Token is now managed automatically via database/file storage
         return res.status(401).json({
           success: false,
           message: "Facebook credentials are not configured. Please provide FACEBOOK_ACCESS_TOKEN."
